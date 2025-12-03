@@ -21,15 +21,20 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import Masonry from 'react-masonry-css';
 
+// Helper function to get optimized image path for display (fast loading)
+const getOptimizedImagePath = (imagePath) => {
+  // Use optimized version if it exists, otherwise fallback to original
+  // e.g., /images/gallery/sync-uncanny/DSC03918.jpg -> /images/gallery-optimized/sync-uncanny/DSC03918.jpg
+  if (imagePath.startsWith('/images/gallery/')) {
+    const optimizedPath = imagePath.replace('/images/gallery/', '/images/gallery-optimized/');
+    return getAssetPath(optimizedPath);
+  }
+  return getAssetPath(imagePath);
+};
+
 // Helper function to get original full-res image path for downloads
 const getOriginalImagePath = (imagePath) => {
-  // Convert optimized path to original path
-  // e.g., /images/gallery/sync-uncanny/DSC03918.jpg -> /images/originals/gallery/sync-uncanny/DSC03918.jpg
-  if (imagePath.startsWith('/images/gallery/')) {
-    const originalPath = imagePath.replace('/images/gallery/', '/images/originals/gallery/');
-    return getAssetPath(originalPath);
-  }
-  // Fallback to regular path if no original exists
+  // Always use original for downloads
   return getAssetPath(imagePath);
 };
 
@@ -38,7 +43,7 @@ const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const imagePath = getAssetPath(image);
+  const imagePath = getOptimizedImagePath(image); // Use optimized for display
   
   const handleImageLoad = (e) => {
     setImageLoaded(true);
@@ -56,7 +61,7 @@ const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
         data-lg-size={`${imageDimensions.width || 0}-${imageDimensions.height || 0}`}
         className="gallery-item block overflow-hidden rounded-lg group cursor-zoom-in relative bg-gray-900"
         data-sub-html={`<h4>${projectTitle}</h4><p>Image ${index + 1}</p>`}
-        data-download-url={getOriginalImagePath(image)}
+        data-download-url={getOriginalImagePath(image)} // Original for downloads
       >
         {/* Loading placeholder - maintains aspect ratio */}
         {!imageLoaded && !imageError && (
@@ -198,6 +203,24 @@ const GalleryPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Custom ESC handler for instant close
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape' && galleryLgRef.current) {
+        const lgContainer = document.querySelector('.lg-container.lg-show');
+        if (lgContainer) {
+          e.preventDefault();
+          e.stopPropagation();
+          galleryLgRef.current.closeGallery();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleEscKey, true); // Use capture phase for immediate handling
+    return () => {
+      document.removeEventListener('keydown', handleEscKey, true);
+    };
+  }, []);
+
   // Initialize LightGallery when gallery images change
   useEffect(() => {
     if (!project) return;
@@ -227,20 +250,25 @@ const GalleryPage = () => {
 
         galleryLgRef.current = lightGallery(masonryContainer, {
           plugins: [lgZoom, lgAutoplay, lgShare],
-          speed: 200,
+          speed: 0, // Instant transitions
           selector: '.gallery-item',
           download: true,
-          preload: 1, // Industry standard: preload 1 adjacent image
+          preload: 1,
           loadYouTubePoster: false,
           mode: 'lg-fade',
           enableSwipe: true,
           enableDrag: true,
           thumbnail: false,
-          // Industry standard: Show modal immediately, load image progressively
-          startAnimationDuration: 0,
-          backdropDuration: 200,
-          // Use the already-loaded grid image as initial view
-          zoomFromOrigin: false, // Disable zoom animation for faster display
+          startAnimationDuration: 0, // No start animation delay
+          backdropDuration: 200, // Backdrop fades in smoothly
+          slideDelay: 0, // No slide transition delay
+          zoomFromOrigin: false, // Disable zoom animation
+          hideBarsDelay: 0, // No delay hiding controls
+          showBarsAfter: 0, // Show controls immediately
+          escKey: true, // Enable ESC key
+          closable: true, // Allow closing
+          swipeToClose: true, // Allow swipe to close
+          closeOnTap: true, // Allow tap to close
         });
 
         // Store instance globally so components can access it
@@ -340,22 +368,12 @@ const GalleryPage = () => {
         
         await Promise.all(chunk.map(async (imageUrl) => {
           try {
-            // Use original full-res image for downloads
+            // Always use original full-res images for downloads
             const originalPath = getOriginalImagePath(imageUrl);
             const response = await fetch(originalPath);
-            
-            // If original doesn't exist, fallback to optimized version
-            if (!response.ok) {
-              console.warn(`Original not found for ${imageUrl}, using optimized version`);
-              const fallbackResponse = await fetch(getAssetPath(imageUrl));
-              const blob = await fallbackResponse.blob();
-              const filename = imageUrl.split('/').pop();
-              folder.file(filename, blob);
-            } else {
-              const blob = await response.blob();
-              const filename = imageUrl.split('/').pop();
-              folder.file(filename, blob);
-            }
+            const blob = await response.blob();
+            const filename = imageUrl.split('/').pop();
+            folder.file(filename, blob);
             
             downloadedCount++;
             

@@ -209,7 +209,14 @@
   opacity: 1 !important;
   z-index: 99999 !important;
   /* Show immediately, don't wait for image */
-  transition: none !important;
+  transition: opacity 0ms !important;
+}
+
+/* Fade out container on close */
+.lg-container:not(.lg-show),
+.lg-container.lg-closing {
+  opacity: 0 !important;
+  transition: opacity 150ms ease-in-out !important;
 }
 
 /* Show loading spinner while image loads */
@@ -254,6 +261,15 @@
   opacity: 1 !important;
   visibility: visible !important;
   display: block !important;
+  /* Allow backdrop to fade in smoothly */
+  transition: opacity 200ms ease-in-out !important;
+}
+
+/* Fade out backdrop on close */
+.lg-backdrop:not(.in),
+.lg-backdrop.lg-closing {
+  opacity: 0 !important;
+  transition: opacity 150ms ease-in-out !important;
 }
 
 .lg-outer {
@@ -264,6 +280,14 @@
 .lg-outer.lg-visible {
   opacity: 1 !important;
   visibility: visible !important;
+  transition: opacity 0ms !important; /* Instant visibility */
+}
+
+/* Fade out outer on close */
+.lg-outer:not(.lg-visible),
+.lg-outer.lg-closing {
+  opacity: 0 !important;
+  transition: opacity 150ms ease-in-out !important;
 }
 
 .lg-item {

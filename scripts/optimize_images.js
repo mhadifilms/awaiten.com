@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const MAX_WIDTH = 2400; // Max width for full-res images (industry standard: 2400px for retina displays)
 const QUALITY = 85; // JPEG quality (industry standard: 80-90 for web)
 const GALLERY_DIR = path.join(__dirname, '../public/images/gallery');
+const OPTIMIZED_DIR = path.join(__dirname, '../public/images/gallery-optimized');
 
 /**
  * Industry Standard Image Optimization:
@@ -22,13 +23,25 @@ async function optimizeImage(filePath) {
     const stats = fs.statSync(filePath);
     const fileSizeMB = stats.size / (1024 * 1024);
     
-    // Skip if already optimized (< 2MB)
-    if (fileSizeMB < 2) {
-      console.log(`✓ Already optimized: ${path.basename(filePath)} (${fileSizeMB.toFixed(2)}MB)`);
+    // Get relative path from gallery directory
+    const relativePath = path.relative(GALLERY_DIR, filePath);
+    const optimizedPath = path.join(OPTIMIZED_DIR, relativePath);
+    const optimizedDir = path.dirname(optimizedPath);
+    
+    // Skip if optimized version already exists
+    if (fs.existsSync(optimizedPath)) {
+      const optimizedStats = fs.statSync(optimizedPath);
+      const optimizedSizeMB = optimizedStats.size / (1024 * 1024);
+      console.log(`✓ Already optimized: ${path.basename(filePath)} (${optimizedSizeMB.toFixed(2)}MB)`);
       return;
     }
 
     console.log(`Optimizing: ${path.basename(filePath)} (${fileSizeMB.toFixed(2)}MB)`);
+    
+    // Create optimized directory if it doesn't exist
+    if (!fs.existsSync(optimizedDir)) {
+      fs.mkdirSync(optimizedDir, { recursive: true });
+    }
     
     const image = sharp(filePath);
     const metadata = await image.metadata();
@@ -42,23 +55,7 @@ async function optimizeImage(filePath) {
       width = MAX_WIDTH;
     }
     
-    // Store original in originals folder for downloads
-    const relativePath = path.relative(GALLERY_DIR, filePath);
-    const originalsDir = path.join(GALLERY_DIR, '..', 'originals', path.dirname(relativePath));
-    const originalPath = path.join(originalsDir, path.basename(filePath));
-    
-    // Create originals directory if it doesn't exist
-    if (!fs.existsSync(originalsDir)) {
-      fs.mkdirSync(originalsDir, { recursive: true });
-    }
-    
-    // Copy original to originals folder if not already there
-    if (!fs.existsSync(originalPath)) {
-      fs.copyFileSync(filePath, originalPath);
-      console.log(`  → Original saved to originals folder`);
-    }
-    
-    // Optimize image (replace current file with optimized version)
+    // Create optimized version (DO NOT replace original)
     await image
       .resize(width, height, {
         fit: 'inside',
@@ -69,16 +66,13 @@ async function optimizeImage(filePath) {
         mozjpeg: true, // Better compression
         progressive: true // Progressive JPEG for faster perceived loading
       })
-      .toFile(filePath + '.tmp');
+      .toFile(optimizedPath);
     
-    // Replace original with optimized
-    fs.renameSync(filePath + '.tmp', filePath);
-    
-    const newStats = fs.statSync(filePath);
+    const newStats = fs.statSync(optimizedPath);
     const newSizeMB = newStats.size / (1024 * 1024);
     const reduction = ((1 - newStats.size / stats.size) * 100).toFixed(1);
     
-    console.log(`  → ${newSizeMB.toFixed(2)}MB (${reduction}% reduction)`);
+    console.log(`  → ${newSizeMB.toFixed(2)}MB (${reduction}% reduction) - saved to gallery-optimized`);
   } catch (error) {
     console.error(`Error optimizing ${filePath}:`, error.message);
   }
@@ -108,12 +102,17 @@ async function optimizeDirectory(dir) {
 }
 
 console.log('Starting industry-standard image optimization...');
-console.log(`Target: Max ${MAX_WIDTH}px width, ${QUALITY}% quality, 1-2MB per image\n`);
+console.log(`Target: Max ${MAX_WIDTH}px width, ${QUALITY}% quality, 1-2MB per image`);
+console.log(`Originals preserved in: ${GALLERY_DIR}`);
+console.log(`Optimized versions saved to: ${OPTIMIZED_DIR}`);
+console.log('Note: Optimized images will be committed to git for GitHub Actions build\n');
 
 optimizeDirectory(GALLERY_DIR)
   .then(() => {
     console.log('\n✅ Image optimization complete!');
-    console.log('Note: Original images backed up with .backup extension');
+    console.log('✓ Original images preserved (unchanged)');
+    console.log('✓ Optimized versions created in gallery-optimized folder');
+    console.log('✓ Ready to commit optimized images to git');
   })
   .catch(error => {
     console.error('Error:', error);

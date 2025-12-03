@@ -4,6 +4,22 @@ import ImageWithFallback from '../ui/ImageWithFallback';
 import MotionBox from '../ui/MotionBox';
 import Container from '../ui/Container';
 import { getAssetPath } from '../../utils/assets';
+
+// Helper function to get optimized image path for display (fast loading)
+const getOptimizedImagePath = (imagePath) => {
+  // Use optimized version if it exists, otherwise fallback to original
+  if (imagePath.startsWith('/images/gallery/')) {
+    const optimizedPath = imagePath.replace('/images/gallery/', '/images/gallery-optimized/');
+    return getAssetPath(optimizedPath);
+  }
+  return getAssetPath(imagePath);
+};
+
+// Helper function to get original full-res image path for downloads
+const getOriginalImagePath = (imagePath) => {
+  // Always use original for downloads
+  return getAssetPath(imagePath);
+};
 import 'lightgallery/css/lightgallery.css';
 import 'lightgallery/css/lg-zoom.css';
 import lightGallery from 'lightgallery';
@@ -20,6 +36,39 @@ const processHtmlContent = (html) => {
 
 const ProjectDetail = ({ project }) => {
   const galleryRef = useRef(null);
+  const contentLgRef = useRef(null);
+  const projectGalleryLgRef = useRef(null);
+
+  // Custom ESC handler for instant close
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape') {
+        const lgContainer = document.querySelector('.lg-container.lg-show');
+        if (lgContainer) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (contentLgRef.current) {
+            try {
+              contentLgRef.current.closeGallery();
+            } catch (e) {
+              // Ignore errors
+            }
+          }
+          if (projectGalleryLgRef.current) {
+            try {
+              projectGalleryLgRef.current.closeGallery();
+            } catch (e) {
+              // Ignore errors
+            }
+          }
+        }
+      }
+    };
+    document.addEventListener('keydown', handleEscKey, true);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey, true);
+    };
+  }, []);
   const contentRef = useRef(null);
 
   // Set page title and meta tags
@@ -231,38 +280,64 @@ const ProjectDetail = ({ project }) => {
         }
       });
 
-      contentLg = lightGallery(contentDiv, {
-        plugins: [lgZoom], // Removed lgThumbnail for faster loading
-        speed: 200,
-        selector: 'img', // Select all images inside content
+      contentLgRef.current = lightGallery(contentDiv, {
+        plugins: [lgZoom],
+        speed: 0, // Instant transitions
+        selector: 'img',
         download: true,
-        preload: 0, // Disable preloading - only load current image
+        preload: 0,
         mode: 'lg-fade',
-        thumbnail: false, // Disable thumbnails entirely for faster loading
+        thumbnail: false,
         startAnimationDuration: 0,
-        backdropDuration: 200,
+        backdropDuration: 200, // Backdrop fades in smoothly
+        slideDelay: 0,
+        hideBarsDelay: 0, // No delay hiding controls
+        showBarsAfter: 0, // Show controls immediately
+        escKey: true,
+        closable: true,
       });
+      const contentLg = contentLgRef.current;
     }
 
     // Handle Main Project Gallery
     let galleryLg;
     if (project.gallery && project.gallery.length > 0 && galleryRef.current) {
-      galleryLg = lightGallery(galleryRef.current, {
-        plugins: [lgZoom], // Removed lgThumbnail for faster loading
-        speed: 200,
+      projectGalleryLgRef.current = lightGallery(galleryRef.current, {
+        plugins: [lgZoom],
+        speed: 0, // Instant transitions
         selector: '.gallery-item',
         download: true,
-        preload: 0, // Disable preloading - only load current image
+        preload: 0,
         mode: 'lg-fade',
-        thumbnail: false, // Disable thumbnails entirely for faster loading
+        thumbnail: false,
         startAnimationDuration: 0,
-        backdropDuration: 200,
+        backdropDuration: 200, // Backdrop fades in smoothly
+        slideDelay: 0,
+        hideBarsDelay: 0, // No delay hiding controls
+        showBarsAfter: 0, // Show controls immediately
+        escKey: true,
+        closable: true,
       });
+      const galleryLg = projectGalleryLgRef.current;
     }
 
     return () => {
-      if (contentLg) contentLg.destroy();
-      if (galleryLg) galleryLg.destroy();
+      if (contentLgRef.current) {
+        try {
+          contentLgRef.current.destroy();
+        } catch (e) {
+          // Ignore errors
+        }
+        contentLgRef.current = null;
+      }
+      if (projectGalleryLgRef.current) {
+        try {
+          projectGalleryLgRef.current.destroy();
+        } catch (e) {
+          // Ignore errors
+        }
+        projectGalleryLgRef.current = null;
+      }
     };
   }, [project.gallery, project.content]);
 
@@ -407,11 +482,9 @@ const ProjectDetail = ({ project }) => {
                     delay={index * 0.1}
                     duration={0.4}
                     className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-800 cursor-zoom-in gallery-item block"
-                    data-src={getAssetPath(image)} // Required for lightGallery (optimized for display)
-                    data-thumb={getAssetPath(image)} // Required for thumbnails
-                    data-download-url={image.startsWith('/images/gallery/') 
-                      ? getAssetPath(image.replace('/images/gallery/', '/images/originals/gallery/'))
-                      : getAssetPath(image)} // Use original full-res for downloads
+                    data-src={getOptimizedImagePath(image)} // Use optimized for display (fast)
+                    data-thumb={getOptimizedImagePath(image)} // Use optimized for thumbnails
+                    data-download-url={getOriginalImagePath(image)} // Use original for downloads
                   >
                     <ImageWithFallback
                       src={image}
