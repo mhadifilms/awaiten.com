@@ -6,9 +6,7 @@ import Container from '../ui/Container';
 import { getAssetPath } from '../../utils/assets';
 import 'lightgallery/css/lightgallery.css';
 import 'lightgallery/css/lg-zoom.css';
-import 'lightgallery/css/lg-thumbnail.css';
 import lightGallery from 'lightgallery';
-import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgZoom from 'lightgallery/plugins/zoom';
 
 // Helper function to process HTML content and fix image paths
@@ -220,23 +218,29 @@ const ProjectDetail = ({ project }) => {
       }
 
       // Initialize LightGallery for content images
-      // First, ensure all images have necessary attributes
+      // Set data attributes only if not already set
       const contentImages = contentDiv.querySelectorAll('img');
       contentImages.forEach(img => {
-        const src = img.getAttribute('src');
-        if (src) {
-          const processedSrc = getAssetPath(src);
-          img.setAttribute('data-src', processedSrc);
-          img.setAttribute('data-thumb', processedSrc);
+        if (!img.getAttribute('data-src')) {
+          const src = img.getAttribute('src');
+          if (src) {
+            const processedSrc = getAssetPath(src);
+            img.setAttribute('data-src', processedSrc);
+            img.setAttribute('data-thumb', processedSrc);
+          }
         }
       });
 
       contentLg = lightGallery(contentDiv, {
-        plugins: [lgThumbnail, lgZoom],
-        speed: 500,
+        plugins: [lgZoom], // Removed lgThumbnail for faster loading
+        speed: 200,
         selector: 'img', // Select all images inside content
         download: true,
-        exThumbImage: 'data-thumb',
+        preload: 0, // Disable preloading - only load current image
+        mode: 'lg-fade',
+        thumbnail: false, // Disable thumbnails entirely for faster loading
+        startAnimationDuration: 0,
+        backdropDuration: 200,
       });
     }
 
@@ -244,11 +248,15 @@ const ProjectDetail = ({ project }) => {
     let galleryLg;
     if (project.gallery && project.gallery.length > 0 && galleryRef.current) {
       galleryLg = lightGallery(galleryRef.current, {
-        plugins: [lgThumbnail, lgZoom],
-        speed: 500,
+        plugins: [lgZoom], // Removed lgThumbnail for faster loading
+        speed: 200,
         selector: '.gallery-item',
         download: true,
-        exThumbImage: 'data-thumb',
+        preload: 0, // Disable preloading - only load current image
+        mode: 'lg-fade',
+        thumbnail: false, // Disable thumbnails entirely for faster loading
+        startAnimationDuration: 0,
+        backdropDuration: 200,
       });
     }
 
@@ -399,8 +407,11 @@ const ProjectDetail = ({ project }) => {
                     delay={index * 0.1}
                     duration={0.4}
                     className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-800 cursor-zoom-in gallery-item block"
-                    data-src={getAssetPath(image)} // Required for lightGallery
+                    data-src={getAssetPath(image)} // Required for lightGallery (optimized for display)
                     data-thumb={getAssetPath(image)} // Required for thumbnails
+                    data-download-url={image.startsWith('/images/gallery/') 
+                      ? getAssetPath(image.replace('/images/gallery/', '/images/originals/gallery/'))
+                      : getAssetPath(image)} // Use original full-res for downloads
                   >
                     <ImageWithFallback
                       src={image}

@@ -9,7 +9,8 @@
     "build": "vite build && cp dist/index.html dist/404.html && node scripts/generate_static_pages.js",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build"
+    "predeploy": "npm run build",
+    "optimize-images": "node scripts/optimize_images.js"
   },
   "dependencies": {
     "file-saver": "^2.0.5",

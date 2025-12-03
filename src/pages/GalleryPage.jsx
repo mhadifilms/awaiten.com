@@ -3,13 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { getProjectBySlug } from '../utils/projects';
 import { getAssetPath } from '../utils/assets';
 import lightGallery from 'lightgallery';
-import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgZoom from 'lightgallery/plugins/zoom';
 import lgAutoplay from 'lightgallery/plugins/autoplay';
 import lgShare from 'lightgallery/plugins/share';
 import 'lightgallery/css/lightgallery.css';
 import 'lightgallery/css/lg-zoom.css';
-import 'lightgallery/css/lg-thumbnail.css';
 import 'lightgallery/css/lg-autoplay.css';
 import 'lightgallery/css/lg-share.css';
 import { FaDownload, FaShare, FaPlay, FaArrowUp, FaArrowLeft } from 'react-icons/fa';
@@ -22,6 +20,18 @@ import { useToast } from '../context/ToastContext';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import Masonry from 'react-masonry-css';
+
+// Helper function to get original full-res image path for downloads
+const getOriginalImagePath = (imagePath) => {
+  // Convert optimized path to original path
+  // e.g., /images/gallery/sync-uncanny/DSC03918.jpg -> /images/originals/gallery/sync-uncanny/DSC03918.jpg
+  if (imagePath.startsWith('/images/gallery/')) {
+    const originalPath = imagePath.replace('/images/gallery/', '/images/originals/gallery/');
+    return getAssetPath(originalPath);
+  }
+  // Fallback to regular path if no original exists
+  return getAssetPath(imagePath);
+};
 
 // Gallery Image Item Component
 const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
@@ -43,9 +53,10 @@ const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
       <div 
         data-src={imagePath}
         data-thumb={imagePath}
+        data-lg-size={`${imageDimensions.width || 0}-${imageDimensions.height || 0}`}
         className="gallery-item block overflow-hidden rounded-lg group cursor-zoom-in relative bg-gray-900"
         data-sub-html={`<h4>${projectTitle}</h4><p>Image ${index + 1}</p>`}
-        data-download-url={imagePath}
+        data-download-url={getOriginalImagePath(image)}
       >
         {/* Loading placeholder - maintains aspect ratio */}
         {!imageLoaded && !imageError && (
@@ -212,28 +223,24 @@ const GalleryPage = () => {
 
       // Initialize new instance with performance optimizations
       try {
-        // Ensure all gallery items have proper data attributes
-        galleryItems.forEach((item) => {
-          const img = item.querySelector('img');
-          if (img) {
-            const imgSrc = img.src || img.getAttribute('src') || '';
-            // Ensure data-src is set (required for lightGallery)
-            if (!item.getAttribute('data-src')) {
-              item.setAttribute('data-src', imgSrc);
-            }
-            // Ensure data-thumb is set (required for thumbnails)
-            if (!item.getAttribute('data-thumb')) {
-              item.setAttribute('data-thumb', imgSrc);
-            }
-          }
-        });
+        // Attributes are already set in JSX, no need to set them again
 
         galleryLgRef.current = lightGallery(masonryContainer, {
-          plugins: [lgThumbnail, lgZoom, lgAutoplay, lgShare],
-          speed: 500,
+          plugins: [lgZoom, lgAutoplay, lgShare],
+          speed: 200,
           selector: '.gallery-item',
           download: true,
-          exThumbImage: 'data-thumb',
+          preload: 1, // Industry standard: preload 1 adjacent image
+          loadYouTubePoster: false,
+          mode: 'lg-fade',
+          enableSwipe: true,
+          enableDrag: true,
+          thumbnail: false,
+          // Industry standard: Show modal immediately, load image progressively
+          startAnimationDuration: 0,
+          backdropDuration: 200,
+          // Use the already-loaded grid image as initial view
+          zoomFromOrigin: false, // Disable zoom animation for faster display
         });
 
         // Store instance globally so components can access it
@@ -333,10 +340,23 @@ const GalleryPage = () => {
         
         await Promise.all(chunk.map(async (imageUrl) => {
           try {
-            const response = await fetch(getAssetPath(imageUrl));
-            const blob = await response.blob();
-            const filename = imageUrl.split('/').pop();
-            folder.file(filename, blob);
+            // Use original full-res image for downloads
+            const originalPath = getOriginalImagePath(imageUrl);
+            const response = await fetch(originalPath);
+            
+            // If original doesn't exist, fallback to optimized version
+            if (!response.ok) {
+              console.warn(`Original not found for ${imageUrl}, using optimized version`);
+              const fallbackResponse = await fetch(getAssetPath(imageUrl));
+              const blob = await fallbackResponse.blob();
+              const filename = imageUrl.split('/').pop();
+              folder.file(filename, blob);
+            } else {
+              const blob = await response.blob();
+              const filename = imageUrl.split('/').pop();
+              folder.file(filename, blob);
+            }
+            
             downloadedCount++;
             
             // Update toast with progress every 5 images or when done

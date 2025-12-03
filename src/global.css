@@ -208,6 +208,32 @@
   visibility: visible !important;
   opacity: 1 !important;
   z-index: 99999 !important;
+  /* Show immediately, don't wait for image */
+  transition: none !important;
+}
+
+/* Show loading spinner while image loads */
+.lg-item:not(.lg-complete) .lg-image {
+  background: rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+.lg-item:not(.lg-complete) .lg-image::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 .lg-container.lg-show-in {
