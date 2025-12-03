@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import CategoryPage from './pages/CategoryPage';
 import ProjectDetailPage from './pages/ProjectDetail';
 import Manifesto from './pages/Manifesto';
+import Podcast from './pages/Podcast';
 import NotFound from './pages/NotFound';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Layout><Home /></Layout>} />
           <Route path="/manifesto" element={<Layout><Manifesto /></Layout>} />
+          <Route path="/podcast" element={<Layout><Podcast /></Layout>} />
           <Route path="/documentary" element={<Layout><CategoryPage category="Documentary" /></Layout>} />
           <Route path="/documentary/:slug" element={<Layout><ProjectDetailPage category="documentary" /></Layout>} />
           <Route path="/photography" element={<Layout><CategoryPage category="Photography" /></Layout>} />

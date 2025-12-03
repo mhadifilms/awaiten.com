@@ -70,6 +70,7 @@ const Navbar = () => {
     { name: 'Home', href: '/', hash: '#home' },
     { name: 'Our Work', href: '/', hash: '#work' },
     { name: 'About', href: '/', hash: '#about' },
+    { name: 'Podcast', href: '/podcast' },
     { name: 'Testimonials', href: '/', hash: '#testimonials' },
   ];
 
