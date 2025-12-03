@@ -4,7 +4,7 @@ import { Instagram, Linkedin, Youtube } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="relative bg-[#F5F5F5] py-12 md:py-16 overflow-hidden">
+    <footer className="relative bg-[var(--color-footer)] py-12 md:py-16 overflow-hidden rounded-t-[2.5rem]">
       {/* Large Background Text */}
       <div className="absolute inset-0 flex items-end justify-center pointer-events-none select-none z-0">
         <h2 className="text-[20vw] md:text-[15vw] font-black text-gray-200/30 whitespace-nowrap tracking-tighter leading-none">
@@ -22,7 +22,7 @@ const Footer = () => {
           {/* Social Media Icons - Center */}
           <div className="flex items-center gap-6">
             <a 
-              href="https://instagram.com" 
+              href="https://instagram.com/awaitenfilms" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-700 hover:text-gray-900 transition-colors"
@@ -31,7 +31,7 @@ const Footer = () => {
               <Instagram size={24} />
             </a>
             <a 
-              href="https://linkedin.com" 
+              href="https://linkedin.com/in/awaiten/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-700 hover:text-gray-900 transition-colors"
@@ -40,7 +40,7 @@ const Footer = () => {
               <Linkedin size={24} />
             </a>
             <a 
-              href="https://youtube.com" 
+              href="https://youtube.com/@AwaitenFilms" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-700 hover:text-gray-900 transition-colors"

@@ -12,7 +12,7 @@ const NavigationArrows = ({
     <>
       <button
         onClick={onPrevious}
-        className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 md:-translate-x-16 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors ${className}`}
+        className={`hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 md:-translate-x-16 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-colors ${className}`}
         aria-label={previousLabel}
       >
         <ChevronLeft className="w-6 h-6 text-white" />
@@ -20,7 +20,7 @@ const NavigationArrows = ({
 
       <button
         onClick={onNext}
-        className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 md:translate-x-16 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors ${className}`}
+        className={`hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 md:translate-x-16 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-colors ${className}`}
         aria-label={nextLabel}
       >
         <ChevronRight className="w-6 h-6 text-white" />

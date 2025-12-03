@@ -4,12 +4,12 @@ import Section from '../components/ui/Section';
 import ProjectDetailComponent from '../components/projects/ProjectDetail';
 import { getProjectBySlug } from '../utils/projects';
 
-const ProjectDetailPage = () => {
-  const { category, slug } = useParams();
+const ProjectDetailPage = ({ category }) => {
+  const { slug } = useParams();
   const project = getProjectBySlug(slug);
   
   if (!project) {
-    return <Navigate to={`/${category}`} replace />;
+    return <Navigate to="/404" replace />;
   }
   
   // Verify category matches

@@ -7,6 +7,7 @@ const AnimatedHeading = ({
   level = 2, 
   className = '', 
   animation = fadeInUp,
+  viewport = { once: true, margin: "-100px" },
   ...props 
 }) => {
   const HeadingTag = `h${level}`;
@@ -16,10 +17,10 @@ const AnimatedHeading = ({
       initial={animation.initial}
       whileInView={animation.animate || animation}
       transition={animation.transition}
-      viewport={{ once: true }}
+      viewport={viewport}
       {...props}
     >
-      <HeadingTag className={`text-4xl md:text-6xl font-bold text-center mb-12 md:mb-16 ${className}`}>
+      <HeadingTag className={`h2 text-center mb-12 md:mb-16 ${className}`}>
         {children}
       </HeadingTag>
     </motion.div>

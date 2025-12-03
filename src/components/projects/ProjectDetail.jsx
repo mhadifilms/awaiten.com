@@ -1,161 +1,266 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import ImageWithFallback from '../ui/ImageWithFallback';
-import { fadeInUp } from '../../constants/animations';
+import MotionBox from '../ui/MotionBox';
+import Container from '../ui/Container';
+import 'lightgallery/css/lightgallery.css';
+import 'lightgallery/css/lg-zoom.css';
+import 'lightgallery/css/lg-thumbnail.css';
+import lightGallery from 'lightgallery';
+import lgThumbnail from 'lightgallery/plugins/thumbnail';
+import lgZoom from 'lightgallery/plugins/zoom';
 
 const ProjectDetail = ({ project }) => {
-  return (
-    <div className="space-y-16 md:space-y-24 pb-20">
-      {/* Header Section */}
-      <motion.div
-        initial={fadeInUp.initial}
-        animate={fadeInUp.animate}
-        transition={fadeInUp.transition}
-        className="text-center max-w-4xl mx-auto space-y-12 md:space-y-16 pt-10 md:pt-20"
-      >
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-          {project.title}
-        </h1>
+  const galleryRef = useRef(null);
+  const contentRef = useRef(null);
 
-        {/* Project Meta Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
-          {project.duration && (
-            <div className="space-y-2">
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-medium">Duration</h3>
-              <p className="text-xl md:text-2xl font-bold">{project.duration}</p>
+  useEffect(() => {
+    // Handle Content Images (Grouping & Lightbox)
+    let contentLg;
+    if (project.content && contentRef.current) {
+      const contentDiv = contentRef.current;
+      const children = Array.from(contentDiv.children);
+      let mediaGroup = [];
+
+      const isMedia = (node) => {
+        // Check if node is img
+        if (node.tagName === 'IMG') return true;
+        // Check if node is a wrapper (p, figure, div) containing only an image
+        if (['P', 'FIGURE', 'DIV'].includes(node.tagName)) {
+          const img = node.querySelector('img');
+          // Must have an image and no significant text content
+          if (img && node.textContent.trim().length === 0) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      const wrapGroup = (group) => {
+        if (group.length < 2) return;
+        
+        const wrapper = document.createElement('div');
+        // Grid layout for grouped images
+        wrapper.className = 'grid grid-cols-1 md:grid-cols-2 gap-6 my-8 [&>*:nth-child(odd):last-child]:md:col-span-2 [&_img]:rounded-2xl [&_img]:w-full [&_img]:h-full [&_img]:object-cover';
+        
+        // Insert wrapper before the first element of the group
+        group[0].parentNode.insertBefore(wrapper, group[0]);
+        
+        // Move elements into wrapper
+        group.forEach(node => wrapper.appendChild(node));
+      };
+
+      children.forEach((child) => {
+        if (isMedia(child)) {
+          mediaGroup.push(child);
+        } else {
+          if (mediaGroup.length > 1) {
+            wrapGroup(mediaGroup);
+          }
+          mediaGroup = [];
+        }
+      });
+      
+      // Handle trailing group
+      if (mediaGroup.length > 1) {
+        wrapGroup(mediaGroup);
+      }
+
+      // Initialize LightGallery for content images
+      // First, ensure all images have necessary attributes
+      const contentImages = contentDiv.querySelectorAll('img');
+      contentImages.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src) {
+          img.setAttribute('data-src', src);
+          img.setAttribute('data-thumb', src);
+        }
+      });
+
+      contentLg = lightGallery(contentDiv, {
+        plugins: [lgThumbnail, lgZoom],
+        speed: 500,
+        selector: 'img', // Select all images inside content
+        download: true,
+        exThumbImage: 'data-thumb',
+      });
+    }
+
+    // Handle Main Project Gallery
+    let galleryLg;
+    if (project.gallery && project.gallery.length > 0 && galleryRef.current) {
+      galleryLg = lightGallery(galleryRef.current, {
+        plugins: [lgThumbnail, lgZoom],
+        speed: 500,
+        selector: '.gallery-item',
+        download: true,
+        exThumbImage: 'data-thumb',
+      });
+    }
+
+    return () => {
+      if (contentLg) contentLg.destroy();
+      if (galleryLg) galleryLg.destroy();
+    };
+  }, [project.gallery, project.content]);
+
+  return (
+    <div className="pb-20 pt-32">
+      <Container>
+        <div className="max-w-5xl mx-auto">
+          {/* Header Section */}
+          <MotionBox
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16 md:mb-24"
+          >
+            <h1 className="text-5xl md:text-7xl font-bold mb-12 tracking-tight">
+              {project.title}
+            </h1>
+
+            {/* Project Meta Grid */}
+            <div className="flex flex-wrap justify-center gap-8 md:gap-16 text-center border-t border-white/10 pt-8">
+              {project.duration && (
+                <div className="space-y-2 min-w-[140px]">
+                  <h5 className="text-gray-400 text-xs md:text-sm uppercase tracking-widest font-semibold">Duration</h5>
+                  <h4 className="text-lg md:text-xl font-bold">{project.duration}</h4>
+                </div>
+              )}
+              
+              {project.client && (
+                <div className="space-y-2 min-w-[140px]">
+                  <h5 className="text-gray-400 text-xs md:text-sm uppercase tracking-widest font-semibold">Client</h5>
+                  <h4 className="text-lg md:text-xl font-bold">{project.client}</h4>
+                </div>
+              )}
+              
+              {project.deliverables && (
+                <div className="space-y-2 min-w-[140px]">
+                  <h5 className="text-gray-400 text-xs md:text-sm uppercase tracking-widest font-semibold">Deliverables</h5>
+                  <h4 className="text-lg md:text-xl font-bold">{project.deliverables}</h4>
+                </div>
+              )}
             </div>
+          </MotionBox>
+
+          {/* Main Media Section (Video or Hero Image) */}
+          {(project.videoEmbed || project.thumbnail) && (
+            <MotionBox
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="w-full mb-16 md:mb-24"
+            >
+              {project.videoEmbed ? (
+                <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black/20 relative pb-[56.25%] h-0">
+                  <div 
+                    className="absolute top-0 left-0 w-full h-full [&_iframe]:w-full [&_iframe]:h-full"
+                    dangerouslySetInnerHTML={{ __html: project.videoEmbed }}
+                  />
+                </div>
+              ) : (
+                <div className="aspect-video w-full rounded-2xl overflow-hidden">
+                  <ImageWithFallback
+                    src={project.thumbnail}
+                    alt={project.title}
+                    className={`w-full h-full object-cover ${project.thumbnailPosition || 'object-center'}`}
+                  />
+                </div>
+              )}
+            </MotionBox>
           )}
-          
-          {project.client && (
-            <div className="space-y-2">
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-medium">Client</h3>
-              <p className="text-xl md:text-2xl font-bold">{project.client}</p>
-            </div>
-          )}
-          
-          {project.deliverables && (
-            <div className="space-y-2">
-              <h3 className="text-gray-400 text-sm uppercase tracking-wider font-medium">Deliverables</h3>
-              <p className="text-xl md:text-2xl font-bold">{project.deliverables}</p>
-            </div>
+
+          {/* Content Sections */}
+          <div className="max-w-3xl mx-auto space-y-16">
+            {/* About/Summary Section */}
+            {project.about && project.about.replace(/<[^>]*>/g, '').trim() !== '' && (
+              <MotionBox
+                variant="fadeInUp"
+                duration={0.6}
+                className="space-y-4 text-center"
+              >
+                <h5 className="text-gray-400 text-xs md:text-sm uppercase tracking-widest font-semibold mb-4">Summary</h5>
+                <div 
+                  className="text-2xl md:text-3xl font-medium leading-tight [&>h4]:text-inherit [&>h4]:font-medium [&>a]:text-blue-500 [&>a]:underline"
+                  dangerouslySetInnerHTML={{ __html: project.about }}
+                />
+              </MotionBox>
+            )}
+
+            {/* Dynamic Content (Our Involvement, About Client, etc) */}
+            {project.content && (
+              <MotionBox
+                variant="fadeInUp"
+                duration={0.6}
+              >
+                <div 
+                  ref={contentRef}
+                  className="prose prose-invert prose-lg max-w-none space-y-12 [&>img]:rounded-xl [&>img]:w-full [&>h2]:text-3xl [&>h2]:font-bold [&>h2]:mt-12 [&>h2]:mb-6"
+                  dangerouslySetInnerHTML={{ __html: project.content }} 
+                />
+              </MotionBox>
+            )}
+
+            {/* Additional Info Fields */}
+            {(project.otherInfo1 || project.otherInfo2) && (
+              <MotionBox
+                variant="fadeInUp"
+                duration={0.6}
+                className={`grid grid-cols-1 ${project.otherInfo1 && project.otherInfo2 ? 'md:grid-cols-2' : ''} gap-12`}
+              >
+                 {project.otherInfo1 && project.otherInfo1.replace(/<[^>]*>/g, '').trim() !== '' && (
+                   <div 
+                     className="prose prose-invert prose-lg max-w-none [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-4 [&>p]:text-gray-400 [&>p]:text-lg [&>p]:leading-relaxed"
+                     dangerouslySetInnerHTML={{ __html: project.otherInfo1 }}
+                   />
+                 )}
+                 {project.otherInfo2 && project.otherInfo2.replace(/<[^>]*>/g, '').trim() !== '' && (
+                   <div 
+                     className="prose prose-invert prose-lg max-w-none [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-4 [&>p]:text-gray-400 [&>p]:text-lg [&>p]:leading-relaxed"
+                     dangerouslySetInnerHTML={{ __html: project.otherInfo2 }}
+                   />
+                 )}
+              </MotionBox>
+            )}
+          </div>
+
+          {/* Gallery Section with LightGallery */}
+          {project.gallery && project.gallery.length > 0 && (
+            <MotionBox
+              variant="fadeInUp"
+              duration={0.6}
+              className="space-y-12 mt-24"
+            >
+              <h3 className="text-3xl font-bold text-center">Project Gallery</h3>
+              <div 
+                ref={galleryRef}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
+              >
+                {project.gallery.map((image, index) => (
+                  <MotionBox
+                    key={index}
+                    variant="scaleIn"
+                    delay={index * 0.1}
+                    duration={0.4}
+                    className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-800 cursor-zoom-in gallery-item block"
+                    data-src={image} // Required for lightGallery
+                    data-thumb={image} // Required for thumbnails
+                  >
+                    <ImageWithFallback
+                      src={image}
+                      alt={`${project.title} gallery image ${index + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  </MotionBox>
+                ))}
+              </div>
+            </MotionBox>
           )}
         </div>
-      </motion.div>
-
-      {/* Main Media Section (Video or Hero Image) */}
-      <motion.div
-        initial={fadeInUp.initial}
-        animate={fadeInUp.animate}
-        transition={{ ...fadeInUp.transition, delay: 0.2 }}
-        className="w-full"
-      >
-        {project.videoEmbed ? (
-          <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black/20">
-            <div 
-              className="w-full h-full"
-              dangerouslySetInnerHTML={{ __html: project.videoEmbed }}
-            />
-          </div>
-        ) : (
-          <div className="aspect-video w-full rounded-2xl overflow-hidden">
-            <ImageWithFallback
-              src={project.thumbnail}
-              alt={project.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-      </motion.div>
-
-      {/* Content Sections */}
-      <div className="max-w-3xl mx-auto space-y-16 md:space-y-24">
-        {/* About/Summary Section */}
-        {project.about && (
-          <motion.div
-            initial={fadeInUp.initial}
-            whileInView={fadeInUp.animate}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="space-y-4 text-center"
-          >
-            <h3 className="text-gray-400 text-sm uppercase tracking-wider font-medium">Summary</h3>
-            <div className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight">
-              {project.about}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Dynamic Content (Our Involvement, About Client, etc) */}
-        {project.content && (
-          <motion.div
-            initial={fadeInUp.initial}
-            whileInView={fadeInUp.animate}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="prose prose-invert prose-lg max-w-none space-y-12"
-            dangerouslySetInnerHTML={{ __html: project.content }}
-          />
-        )}
-
-        {/* Additional Info Fields mapped to specific sections if needed */}
-        {(project.otherInfo1 || project.otherInfo2) && (
-          <motion.div
-            initial={fadeInUp.initial}
-            whileInView={fadeInUp.animate}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="space-y-12"
-          >
-             {project.otherInfo1 && (
-               <div className="space-y-4">
-                 <h3 className="text-2xl font-bold">Our Involvement</h3>
-                 <p className="text-gray-300 text-lg leading-relaxed">{project.otherInfo1}</p>
-               </div>
-             )}
-             {project.otherInfo2 && (
-               <div className="space-y-4">
-                 <h3 className="text-2xl font-bold">About {project.client}</h3>
-                 <p className="text-gray-300 text-lg leading-relaxed">{project.otherInfo2}</p>
-               </div>
-             )}
-          </motion.div>
-        )}
-      </div>
-
-      {/* Gallery Section */}
-      {project.gallery && project.gallery.length > 0 && (
-        <motion.div
-          initial={fadeInUp.initial}
-          whileInView={fadeInUp.animate}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="space-y-8"
-        >
-          <h3 className="text-3xl font-bold text-center">Project Gallery</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-            {project.gallery.map((image, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-800"
-              >
-                <ImageWithFallback
-                  src={image}
-                  alt={`${project.title} gallery image ${index + 1}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+      </Container>
     </div>
   );
 };
 
 export default ProjectDetail;
-

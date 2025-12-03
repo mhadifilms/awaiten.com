@@ -1,75 +1,51 @@
 import React from 'react';
 import Section from '../components/ui/Section';
-import AnimatedHeading from '../components/ui/AnimatedHeading';
-import FormInput from '../components/ui/FormInput';
-import Button from '../components/ui/Button';
-import { motion } from 'framer-motion';
-import { fadeInLeft, fadeInRight } from '../constants/animations';
+import MotionBox from '../components/ui/MotionBox';
 
 const Contact = () => {
   return (
-    <Section id="contact" className="bg-contact">
-      <AnimatedHeading>Get in Touch</AnimatedHeading>
-
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16 items-start">
-        {/* Left Side - Descriptive Text */}
-        <motion.div
-          initial={fadeInLeft.initial}
-          whileInView={fadeInLeft.animate}
-          transition={fadeInLeft.transition}
-          viewport={{ once: true }}
-          className="space-y-6"
+    <Section id="contact" className="relative overflow-hidden py-32 px-4 md:px-0">
+      <div className="max-w-3xl mx-auto">
+        <MotionBox
+          variant="fadeInUp"
+          className="text-center space-y-8 mb-8"
         >
-          <p className="text-gray-300 text-lg leading-relaxed">
-            Let's talk! Get in touch with our team with any inquiries or project ideas.
-          </p>
-          <p className="text-gray-300 text-lg leading-relaxed">
-            We're always open to chatting, and will do our best to get back to you within three days.
-          </p>
-        </motion.div>
-
-        {/* Right Side - Contact Form */}
-        <motion.form
-          initial={fadeInRight.initial}
-          whileInView={fadeInRight.animate}
-          transition={fadeInRight.transition}
-          viewport={{ once: true }}
-          className="space-y-6"
-        >
-          {/* Name and Email Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormInput
-              type="text"
-              id="name"
-              placeholder="Your Full Name"
-            />
-            <FormInput
-              type="email"
-              id="email"
-              placeholder="youremail@address.com"
-            />
-          </div>
+          <h2 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none">
+            Let's work <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
+              together.
+            </span>
+          </h2>
           
-          {/* Message Textarea */}
-          <FormInput
-            type="textarea"
-            id="message"
-            placeholder="How can we help?"
-            rows={6}
-          />
+          <p className="text-xl md:text-2xl text-gray-400 font-light max-w-xl mx-auto leading-relaxed">
+            Drop a message and let's create something memorable.
+          </p>
+        </MotionBox>
 
-          {/* Submit Button */}
-          <Button 
-            variant="primary" 
-            className="w-full bg-gray-100 text-gray-900 hover:bg-white transition-colors py-4 text-lg font-semibold"
+        <div className="flex justify-center">
+          <MotionBox
+            as="a"
+            href="mailto:info@awaiten.com"
+            variant="fadeInUp"
+            delay={0.2}
+            className="group relative inline-flex items-center gap-3 px-8 py-4 text-xl font-medium text-white bg-white/5 border border-white/10 rounded-full backdrop-blur-sm hover:bg-white hover:text-black transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            Submit
-          </Button>
-        </motion.form>
+            <span>info@awaiten.com</span>
+            <svg 
+              className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </MotionBox>
+        </div>
       </div>
     </Section>
   );
 };
 
 export default Contact;
-

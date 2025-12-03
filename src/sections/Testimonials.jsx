@@ -25,7 +25,7 @@ const Testimonials = () => {
 
   return (
     <Section id="testimonials">
-      <AnimatedHeading>Kind Words from Clients</AnimatedHeading>
+      <AnimatedHeading>Kind Words</AnimatedHeading>
 
       <div className="max-w-4xl mx-auto relative">
         <NavigationArrows
@@ -54,7 +54,7 @@ const Testimonials = () => {
                   fallbackGradient="linear-gradient(135deg, #4b5563 0%, #1f2937 100%)"
                 />
               </div>
-              <h3 className="text-2xl md:text-3xl font-bold mb-2">
+              <h3 className="h3 mb-2">
                 {testimonials[currentIndex].author}
               </h3>
               <p className="text-gray-400 text-lg">
@@ -62,7 +62,7 @@ const Testimonials = () => {
               </p>
             </div>
 
-            <p className="text-gray-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
+            <p className="body-base leading-relaxed max-w-3xl mx-auto">
               "{testimonials[currentIndex].text}"
             </p>
           </motion.div>
