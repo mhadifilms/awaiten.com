@@ -123,6 +123,57 @@ const GalleryPage = () => {
       : (galleryCategories[selectedCategory] || []);
   }, [selectedCategory, allGalleryImages, galleryCategories]);
 
+  // Set page title and meta tags
+  useEffect(() => {
+    if (!project) return;
+
+    // Set document title
+    document.title = `${project.title} • Awaiten`;
+
+    // Get cover photo for embed image
+    const gallerySettings = project.gallerySettings || {};
+    const coverPhoto = gallerySettings.coverPhoto || project.thumbnail;
+    const embedImagePath = coverPhoto ? getAssetPath(coverPhoto) : '/images/branding/embed.png';
+    const embedImageUrl = embedImagePath.startsWith('http') 
+      ? embedImagePath 
+      : `${window.location.origin}${embedImagePath.startsWith('/') ? '' : '/'}${embedImagePath}`;
+
+    // Update or create og:image meta tag
+    let ogImage = document.querySelector('meta[property="og:image"]');
+    if (!ogImage) {
+      ogImage = document.createElement('meta');
+      ogImage.setAttribute('property', 'og:image');
+      document.head.appendChild(ogImage);
+    }
+    ogImage.setAttribute('content', embedImageUrl);
+
+    // Update or create twitter:image meta tag
+    let twitterImage = document.querySelector('meta[property="twitter:image"]');
+    if (!twitterImage) {
+      twitterImage = document.createElement('meta');
+      twitterImage.setAttribute('property', 'twitter:image');
+      document.head.appendChild(twitterImage);
+    }
+    twitterImage.setAttribute('content', embedImageUrl);
+
+    // Update og:title if it exists
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) {
+      ogTitle.setAttribute('content', `${project.title} • Awaiten`);
+    }
+
+    // Update twitter:title if it exists
+    let twitterTitle = document.querySelector('meta[property="twitter:title"]');
+    if (twitterTitle) {
+      twitterTitle.setAttribute('content', `${project.title} • Awaiten`);
+    }
+
+    // Cleanup function to restore default title when component unmounts
+    return () => {
+      document.title = 'Awaiten • Creative Production Studio';
+    };
+  }, [project]);
+
   // Handle scroll for sticky header/button visibility - throttled for performance
   useEffect(() => {
     let ticking = false;

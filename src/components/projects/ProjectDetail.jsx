@@ -24,6 +24,14 @@ const ProjectDetail = ({ project }) => {
   const galleryRef = useRef(null);
   const contentRef = useRef(null);
 
+  // Set page title
+  useEffect(() => {
+    document.title = `${project.title} • Awaiten`;
+    return () => {
+      document.title = "Awaiten • Creative Production Studio";
+    };
+  }, [project.title]);
+
   useEffect(() => {
     // Handle Content Images (Grouping & Lightbox)
     let contentLg;

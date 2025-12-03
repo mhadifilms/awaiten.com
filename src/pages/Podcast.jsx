@@ -807,6 +807,14 @@ const CTASection = () => (
 const Podcast = () => {
   const [selectedVideo, setSelectedVideo] = useState(null);
 
+  // Set page title
+  useEffect(() => {
+    document.title = "Journey Tellers • Awaiten";
+    return () => {
+      document.title = "Awaiten • Creative Production Studio";
+    };
+  }, []);
+
   const handleVideoClick = (videoId) => {
     setSelectedVideo(videoId);
     document.body.style.overflow = 'hidden';
