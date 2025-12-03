@@ -24,13 +24,89 @@ const ProjectDetail = ({ project }) => {
   const galleryRef = useRef(null);
   const contentRef = useRef(null);
 
-  // Set page title
+  // Set page title and meta tags
   useEffect(() => {
     document.title = `${project.title} • Awaiten`;
+
+    // Get cover photo for embed image
+    const gallerySettings = project.gallerySettings || {};
+    const coverPhoto = gallerySettings.coverPhoto || project.thumbnail;
+    const embedImagePath = coverPhoto ? getAssetPath(coverPhoto) : getAssetPath('/images/branding/embed.png');
+    // Construct absolute URL for meta tags (needed for external services)
+    const embedImageUrl = embedImagePath.startsWith('http') 
+      ? embedImagePath 
+      : new URL(embedImagePath, window.location.origin).href;
+
+    // Update or create og:image meta tag
+    let ogImage = document.querySelector('meta[property="og:image"]');
+    if (!ogImage) {
+      ogImage = document.createElement('meta');
+      ogImage.setAttribute('property', 'og:image');
+      document.head.appendChild(ogImage);
+    }
+    ogImage.setAttribute('content', embedImageUrl);
+
+    // Update or create twitter:image meta tag
+    let twitterImage = document.querySelector('meta[name="twitter:image"], meta[property="twitter:image"]');
+    if (!twitterImage) {
+      twitterImage = document.createElement('meta');
+      twitterImage.setAttribute('name', 'twitter:image');
+      document.head.appendChild(twitterImage);
+    }
+    twitterImage.setAttribute('content', embedImageUrl);
+
+    // Update or create og:title
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (!ogTitle) {
+      ogTitle = document.createElement('meta');
+      ogTitle.setAttribute('property', 'og:title');
+      document.head.appendChild(ogTitle);
+    }
+    ogTitle.setAttribute('content', `${project.title} • Awaiten`);
+
+    // Update or create twitter:title
+    let twitterTitle = document.querySelector('meta[name="twitter:title"], meta[property="twitter:title"]');
+    if (!twitterTitle) {
+      twitterTitle = document.createElement('meta');
+      twitterTitle.setAttribute('name', 'twitter:title');
+      document.head.appendChild(twitterTitle);
+    }
+    twitterTitle.setAttribute('content', `${project.title} • Awaiten`);
+
+    // Update or create og:description
+    const description = project.about 
+      ? project.about.replace(/<[^>]*>/g, '').trim().substring(0, 200)
+      : `View ${project.title} by Awaiten`;
+    let ogDescription = document.querySelector('meta[property="og:description"]');
+    if (!ogDescription) {
+      ogDescription = document.createElement('meta');
+      ogDescription.setAttribute('property', 'og:description');
+      document.head.appendChild(ogDescription);
+    }
+    ogDescription.setAttribute('content', description);
+
+    // Update or create twitter:description
+    let twitterDescription = document.querySelector('meta[name="twitter:description"], meta[property="twitter:description"]');
+    if (!twitterDescription) {
+      twitterDescription = document.createElement('meta');
+      twitterDescription.setAttribute('name', 'twitter:description');
+      document.head.appendChild(twitterDescription);
+    }
+    twitterDescription.setAttribute('content', description);
+
+    // Update og:url
+    let ogUrl = document.querySelector('meta[property="og:url"]');
+    if (!ogUrl) {
+      ogUrl = document.createElement('meta');
+      ogUrl.setAttribute('property', 'og:url');
+      document.head.appendChild(ogUrl);
+    }
+    ogUrl.setAttribute('content', window.location.href);
+
     return () => {
       document.title = "Awaiten • Creative Production Studio";
     };
-  }, [project.title]);
+  }, [project]);
 
   useEffect(() => {
     // Handle Content Images (Grouping & Lightbox)
