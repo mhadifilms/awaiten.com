@@ -23,6 +23,26 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Early redirect check for gallery subdomain -->
+    <script>
+      (function() {
+        const hostname = window.location.hostname.toLowerCase();
+        if (hostname === 'gallery.awaiten.com' || hostname === 'www.gallery.awaiten.com') {
+          let path = window.location.pathname;
+          // Remove basename if present
+          if (path.startsWith('/awaiten.com')) {
+            path = path.replace('/awaiten.com', '');
+          }
+          path = path.replace(/^\/+/, '').replace(/\/+$/, '');
+          
+          if (!path || path === '') {
+            window.location.replace('https://awaiten.com/photography');
+          } else {
+            window.location.replace('https://awaiten.com/photography/' + path);
+          }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

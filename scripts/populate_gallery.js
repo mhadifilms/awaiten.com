@@ -32,27 +32,104 @@ const DIR_TO_SLUG_MAP = {
   'framesfromtanzania': 'frames-from-tanzania'
 };
 
-// Function to recursively get all images in a directory
-function getImagesRecursively(dir) {
-  let results = [];
-  if (!fs.existsSync(dir)) return results;
+// Function to get images grouped by subfolder (category)
+function getImagesByCategory(projectDir) {
+  const categories = {};
+  const allImages = [];
   
-  const list = fs.readdirSync(dir);
+  if (!fs.existsSync(projectDir)) return { categories, allImages };
   
-  list.forEach(file => {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
+  const list = fs.readdirSync(projectDir);
+  
+  list.forEach(item => {
+    const itemPath = path.join(projectDir, item);
+    const stat = fs.statSync(itemPath);
     
     if (stat && stat.isDirectory()) {
-      results = results.concat(getImagesRecursively(filePath));
+      // Skip Highlights folders - files should be in root now
+      if (item === 'Highlights') {
+        // Get images from Highlights and add to root (no category)
+        function getImagesInDir(dir) {
+          const files = fs.readdirSync(dir);
+          files.forEach(file => {
+            const filePath = path.join(dir, file);
+            const fileStat = fs.statSync(filePath);
+            
+            if (fileStat && fileStat.isDirectory()) {
+              getImagesInDir(filePath);
+            } else {
+              if (IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase())) {
+                const fileName = path.basename(filePath, path.extname(file));
+                if (!fileName.includes('_thumb')) {
+                  allImages.push(filePath);
+                }
+              }
+            }
+          });
+        }
+        getImagesInDir(itemPath);
+        return; // Skip creating Highlights category
+      }
+      
+      // This is a category folder (not Highlights)
+      const categoryName = item;
+      const categoryImages = [];
+      
+      // Get all images in this category folder (recursively)
+      function getImagesInDir(dir) {
+        const files = fs.readdirSync(dir);
+        files.forEach(file => {
+          const filePath = path.join(dir, file);
+          const fileStat = fs.statSync(filePath);
+          
+          if (fileStat && fileStat.isDirectory()) {
+            getImagesInDir(filePath);
+          } else {
+            if (IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase())) {
+              const fileName = path.basename(filePath, path.extname(file));
+              if (!fileName.includes('_thumb')) {
+                categoryImages.push(filePath);
+                allImages.push(filePath);
+              }
+            }
+          }
+        });
+      }
+      
+      getImagesInDir(itemPath);
+      
+      // Sort images by filename within category
+      categoryImages.sort((a, b) => {
+        const nameA = path.basename(a);
+        const nameB = path.basename(b);
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      
+      if (categoryImages.length > 0) {
+        categories[categoryName] = categoryImages.map(imgAbsPath => {
+          const relativePath = path.relative(path.resolve(__dirname, '../public'), imgAbsPath);
+          return '/' + relativePath;
+        });
+      }
     } else {
-      if (IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase())) {
-        results.push(filePath);
+      // Direct images in root (no category folders)
+      if (IMAGE_EXTENSIONS.includes(path.extname(item).toLowerCase())) {
+        const fileName = path.basename(itemPath, path.extname(item));
+        if (!fileName.includes('_thumb')) {
+          allImages.push(itemPath);
+        }
       }
     }
   });
   
-  return results;
+  // Sort all images by filename
+  allImages.sort((a, b) => {
+    const nameA = path.basename(a);
+    const nameB = path.basename(b);
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+  
+  return { categories, allImages };
 }
 
 function updateGallery() {
@@ -76,38 +153,61 @@ function updateGallery() {
     // Find project in JSON
     let project = projectsData.projects.find(p => p.slug === slug);
     
-    // If project doesn't exist, skip
     if (!project) {
         console.log(`Project with slug ${slug} not found in JSON. Skipping gallery update for now.`);
         return;
     }
 
-    // Get all images recursively
-    const allImagePaths = getImagesRecursively(projectDir);
-    
-    // Sort images: prioritize "Highlights" folder if exists, then others
-    allImagePaths.sort((a, b) => {
-        const aIsHighlight = a.includes('Highlights');
-        const bIsHighlight = b.includes('Highlights');
-        if (aIsHighlight && !bIsHighlight) return -1;
-        if (!aIsHighlight && bIsHighlight) return 1;
-        return a.localeCompare(b);
-    });
+    // Get images grouped by category
+    const { categories, allImages } = getImagesByCategory(projectDir);
 
-    // Convert absolute paths to relative URL paths
-    const galleryImages = allImagePaths.map(imgAbsPath => {
+    // Convert absolute paths to relative URL paths for all images
+    const galleryImages = allImages.map(imgAbsPath => {
         const relativePath = path.relative(path.resolve(__dirname, '../public'), imgAbsPath);
         return '/' + relativePath; // Ensure leading slash
     });
 
+    // Convert category images to relative paths
+    const galleryCategories = {};
+    Object.keys(categories).forEach(categoryName => {
+      galleryCategories[categoryName] = categories[categoryName];
+    });
+
     if (galleryImages.length > 0) {
       console.log(`Found ${galleryImages.length} images for project: ${project.title} (${slug})`);
-      project.gallery = galleryImages;
+      if (Object.keys(galleryCategories).length > 0) {
+        console.log(`  Categories: ${Object.keys(galleryCategories).join(', ')}`);
+      }
       
-      // Update thumbnail if it's a placeholder or empty
-      if (!project.thumbnail || project.thumbnail.includes('placeholder')) {
+      // Store both flat array (for backward compatibility) and categories
+      project.gallery = galleryImages;
+      // Always set galleryCategories (clear old ones if no categories exist)
+      if (Object.keys(galleryCategories).length > 0) {
+        project.galleryCategories = galleryCategories;
+      } else {
+        // Remove galleryCategories if no categories exist (files are in root)
+        delete project.galleryCategories;
+      }
+      
+      // Update thumbnail - fix old Highlights paths or use first image
+      if (!project.thumbnail || project.thumbnail.includes('placeholder') || project.thumbnail.includes('/Highlights/')) {
+          // Use first image as thumbnail
           project.thumbnail = galleryImages[0];
           console.log(`Updated thumbnail for ${slug}`);
+      } else {
+          // Fix existing thumbnail path if it references Highlights folder
+          if (project.thumbnail.includes('/Highlights/')) {
+              const fixedThumbnail = project.thumbnail.replace('/Highlights/', '/');
+              // Check if the fixed path exists in gallery images
+              if (galleryImages.includes(fixedThumbnail)) {
+                  project.thumbnail = fixedThumbnail;
+                  console.log(`Fixed thumbnail path for ${slug}`);
+              } else {
+                  // Use first image if fixed path doesn't exist
+                  project.thumbnail = galleryImages[0];
+                  console.log(`Updated thumbnail for ${slug} (fixed path not found)`);
+              }
+          }
       }
       
       updatedCount++;

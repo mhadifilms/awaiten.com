@@ -12,9 +12,17 @@ export const getAllProjects = () => {
  * Get projects by category
  */
 export const getProjectsByCategory = (category) => {
-  return projectsData.projects.filter(project => 
-    project.category.toLowerCase() === category.toLowerCase()
-  );
+  return projectsData.projects.filter(project => {
+    // Filter by category
+    if (project.category.toLowerCase() !== category.toLowerCase()) {
+      return false;
+    }
+    // Filter out unlisted projects (for photography category)
+    if (category.toLowerCase() === 'photography' && project.gallerySettings?.unlisted === true) {
+      return false;
+    }
+    return true;
+  });
 };
 
 /**

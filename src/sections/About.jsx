@@ -34,13 +34,13 @@ const About = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute -left-[10%] top-[20%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px]"
+          className="absolute -left-[10%] top-[20%] w-[600px] h-[600px] bg-gray-600/10 rounded-full blur-[120px]"
         />
         <MotionBox
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, delay: 0.2 }}
-          className="absolute -right-[10%] bottom-[10%] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]"
+          className="absolute -right-[10%] bottom-[10%] w-[600px] h-[600px] bg-gray-600/10 rounded-full blur-[120px]"
         />
       </div>
 
@@ -87,7 +87,7 @@ const About = () => {
                     <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
                       {founder.name}
                     </h3>
-                    <p className="text-blue-400 font-medium mb-4 tracking-wide uppercase text-xs md:text-sm">
+                    <p className="text-gray-400 font-medium mb-4 tracking-wide uppercase text-xs md:text-sm">
                       {founder.role}
                     </p>
                     
@@ -100,9 +100,9 @@ const About = () => {
                         href={founder.link} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="inline-flex items-center text-white font-medium hover:text-blue-400 transition-colors group/link"
+                        className="inline-flex items-center text-white font-medium hover:text-white transition-colors group/link"
                       >
-                        <span className="border-b border-white/30 group-hover/link:border-blue-400 pb-0.5 transition-colors">
+                        <span className="border-b border-white/30 group-hover/link:border-white pb-0.5 transition-colors">
                           {founder.linkText}
                         </span>
                         <svg className="w-4 h-4 ml-2 opacity-70 group-hover/link:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">

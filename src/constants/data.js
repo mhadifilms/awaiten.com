@@ -1,16 +1,16 @@
 // Data constants for reusable content
 export const services = [
   { 
-    name: 'Documentary', 
-    route: '/documentary',
-    image: '/images/pages/Documentary.jpg',
-    label: 'Documentary'
-  },
-  { 
     name: 'Photography', 
     route: '/photography',
     image: '/images/pages/Photography.png',
     label: 'Photography'
+  },
+  { 
+    name: 'Documentary', 
+    route: '/documentary',
+    image: '/images/pages/Documentary.jpg',
+    label: 'Documentary'
   },
   { 
     name: 'Production', 

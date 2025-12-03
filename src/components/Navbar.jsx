@@ -19,7 +19,7 @@ const Navbar = () => {
       setIsScrolled(scrollY > 20);
 
       // Update active section
-      const sections = ['home', 'work', 'about', 'testimonials'];
+      const sections = ['home', 'about', 'work', 'testimonials', 'podcast-preview'];
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId);
         if (element) {
@@ -68,9 +68,10 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Home', href: '/', hash: '#home' },
-    { name: 'Our Work', href: '/', hash: '#work' },
     { name: 'About', href: '/', hash: '#about' },
+    { name: 'Our Work', href: '/', hash: '#work' },
     { name: 'Testimonials', href: '/', hash: '#testimonials' },
+    { name: 'Podcast', href: '/', hash: '#podcast-preview' },
   ];
 
   return (

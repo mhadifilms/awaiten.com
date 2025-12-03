@@ -76,6 +76,65 @@ const ProjectDetail = ({ project }) => {
         wrapGroup(mediaGroup);
       }
 
+      // Process YouTube iframes - wrap them in responsive containers and group them
+      const allIframes = Array.from(contentDiv.querySelectorAll('iframe[src*="youtube.com"], iframe[src*="youtu.be"]'));
+      
+      if (allIframes.length === 0) {
+        // No iframes to process
+      } else if (allIframes.length === 1) {
+        // Single iframe - wrap it
+        const iframe = allIframes[0];
+        if (!iframe.parentElement.classList.contains('youtube-embed-wrapper')) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'youtube-embed-wrapper aspect-video w-full my-12 rounded-2xl overflow-hidden border border-white/10 bg-black/20';
+          
+          const parent = iframe.parentElement;
+          parent.insertBefore(wrapper, iframe);
+          wrapper.appendChild(iframe);
+          
+          // Clean up empty parent elements
+          if (parent.tagName === 'P' && parent.textContent.trim() === '' && !parent.querySelector('*:not(iframe)')) {
+            parent.remove();
+          }
+          
+          iframe.className = 'w-full h-full';
+          iframe.style.border = 'none';
+        }
+      } else {
+        // Multiple iframes - always group them into a grid
+        const firstIframe = allIframes[0];
+        const firstParent = firstIframe.parentElement;
+        
+        // Create grid wrapper
+        const gridWrapper = document.createElement('div');
+        gridWrapper.className = 'grid grid-cols-1 md:grid-cols-2 gap-8 my-12 w-full';
+        gridWrapper.style.maxWidth = '100%';
+        
+        // Insert grid before first iframe
+        firstParent.insertBefore(gridWrapper, firstIframe);
+        
+        // Process all iframes
+        allIframes.forEach((iframe) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'youtube-embed-wrapper aspect-video w-full rounded-2xl overflow-hidden border border-white/10 bg-black/20';
+          wrapper.style.minHeight = '0';
+          
+          const parent = iframe.parentElement;
+          parent.removeChild(iframe);
+          wrapper.appendChild(iframe);
+          gridWrapper.appendChild(wrapper);
+          
+          // Clean up empty parent
+          if (parent.tagName === 'P' && parent.textContent.trim() === '' && !parent.querySelector('*')) {
+            parent.remove();
+          }
+          
+          iframe.className = 'w-full h-full';
+          iframe.style.border = 'none';
+          iframe.style.display = 'block';
+        });
+      }
+
       // Initialize LightGallery for content images
       // First, ensure all images have necessary attributes
       const contentImages = contentDiv.querySelectorAll('img');
@@ -183,7 +242,7 @@ const ProjectDetail = ({ project }) => {
           )}
 
           {/* Content Sections */}
-          <div className="max-w-3xl mx-auto space-y-16">
+          <div className="max-w-5xl mx-auto space-y-16">
             {/* About/Summary Section */}
             {project.about && project.about.replace(/<[^>]*>/g, '').trim() !== '' && (
               <MotionBox
@@ -193,7 +252,7 @@ const ProjectDetail = ({ project }) => {
               >
                 <h5 className="text-gray-400 text-xs md:text-sm uppercase tracking-widest font-semibold mb-4">Summary</h5>
                 <div 
-                  className="text-2xl md:text-3xl font-medium leading-tight [&>h4]:text-inherit [&>h4]:font-medium [&>a]:text-blue-500 [&>a]:underline"
+                  className="text-2xl md:text-3xl font-medium leading-tight [&>h4]:text-inherit [&>h4]:font-medium [&>a]:text-accent [&>a]:underline"
                   dangerouslySetInnerHTML={{ __html: project.about }}
                 />
               </MotionBox>
@@ -204,10 +263,11 @@ const ProjectDetail = ({ project }) => {
               <MotionBox
                 variant="fadeInUp"
                 duration={0.6}
+                className="w-full"
               >
                 <div 
                   ref={contentRef}
-                  className="prose prose-invert prose-lg max-w-none space-y-12 [&>img]:rounded-xl [&>img]:w-full [&>h2]:text-3xl [&>h2]:font-bold [&>h2]:mt-12 [&>h2]:mb-6"
+                  className="prose prose-invert prose-lg max-w-none space-y-12 [&>img]:rounded-xl [&>img]:w-full [&>h2]:text-3xl [&>h2]:font-bold [&>h2]:mt-12 [&>h2]:mb-6 [&_p]:text-gray-300 [&_p]:leading-relaxed [&_p]:text-lg [&_.youtube-embed-wrapper]:w-full"
                   dangerouslySetInnerHTML={{ __html: processHtmlContent(project.content) }} 
                 />
               </MotionBox>

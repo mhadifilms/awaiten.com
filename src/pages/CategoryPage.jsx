@@ -11,7 +11,7 @@ const CategoryPage = ({ category }) => {
   const heading = category.charAt(0).toUpperCase() + category.slice(1);
 
   // Subcategories for filtering (only for Photography for now)
-  const filters = ['ALL', 'LANDSCAPE', 'PORTRAIT', 'WEDDING', 'GRADUATION', 'EVENT', 'BTS', 'TRAVEL', 'STREET', 'CORPORATE'];
+  const filters = ['ALL', 'TRAVEL', 'LANDSCAPE', 'WEDDING', 'PORTRAITS'];
   
   // Filter projects based on subcategory
   const filteredProjects = filter === 'ALL' 

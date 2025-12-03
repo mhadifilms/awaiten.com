@@ -4,8 +4,8 @@ const PaginationDots = ({
   count, 
   currentIndex, 
   onDotClick,
-  activeColor = 'bg-blue-500',
-  inactiveColor = 'bg-blue-500/30 hover:bg-blue-500/50',
+  activeColor = 'bg-gray-400',
+  inactiveColor = 'bg-gray-400/30 hover:bg-gray-400/60',
   className = ''
 }) => {
   return (

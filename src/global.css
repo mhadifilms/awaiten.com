@@ -7,7 +7,7 @@
   --color-footer: #F5F5F5;
   --color-primary: #ffffff;
   --color-secondary: #94a3b8;
-  --color-accent: #3b82f6;
+  --color-accent: #ffffff;
   
   --font-sans: 'Raleway', system-ui, sans-serif;
 }
@@ -153,4 +153,101 @@
   .animate-scroll-text {
     animation: scroll-text 60s linear infinite;
   }
+
+  /* Masonry Grid Styles */
+  .masonry-grid {
+    display: flex;
+    width: auto;
+    gap: 2rem;
+    /* Removed contain: layout style paint - it interferes with lightGallery */
+  }
+
+  .masonry-grid_column {
+    padding-left: 0;
+    background-clip: padding-box;
+    /* Removed contain: layout style paint - it interferes with lightGallery */
+  }
+
+  .masonry-grid_column > div {
+    margin-bottom: 2rem;
+    /* Removed contain: layout style paint - it interferes with lightGallery */
+  }
+
+  /* Performance optimizations for gallery */
+  .gallery-item {
+    /* Removed contain: layout style paint - it interferes with lightGallery */
+    transform: translateZ(0); /* Force GPU acceleration */
+  }
+
+  .gallery-item img {
+    transform: translateZ(0); /* Force GPU acceleration */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
+
+/* LightGallery Thumbnail Customization */
+.lg-thumb-item {
+  border: none !important;
+  outline: none !important;
+}
+
+.lg-thumb-item.active,
+.lg-thumb-item.lg-current {
+  border: 2px solid white !important;
+  outline: none !important;
+}
+
+/* LightGallery Performance Optimizations */
+.lg-container {
+  /* Removed contain: layout style paint - it prevents lightGallery modal from displaying */
+}
+
+.lg-container.lg-show {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 99999 !important;
+}
+
+.lg-container.lg-show-in {
+  opacity: 1 !important;
+}
+
+.lg-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99998 !important;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+}
+
+.lg-backdrop.in {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.lg-outer {
+  z-index: 99999 !important;
+  /* Removed position: relative !important - it breaks lightGallery overlay */
+}
+
+.lg-outer.lg-visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.lg-item {
+  /* Removed contain: layout style paint - it prevents lightGallery from displaying */
+  transform: translateZ(0);
+}
+
+.lg-image {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }

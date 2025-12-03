@@ -11,28 +11,69 @@ import Manifesto from './pages/Manifesto';
 import Podcast from './pages/Podcast';
 import NotFound from './pages/NotFound';
 import ScrollToTop from './components/ScrollToTop';
+import SubdomainRedirect from './components/SubdomainRedirect';
+import { ToastProvider } from './context/ToastContext';
+
+// Check for subdomain redirect before React Router initializes
+function checkSubdomainRedirect() {
+  const hostname = window.location.hostname.toLowerCase();
+  
+  if (hostname === 'gallery.awaiten.com' || hostname === 'www.gallery.awaiten.com') {
+    // Get the current pathname
+    let currentPath = window.location.pathname;
+    
+    // Remove basename if present
+    if (currentPath.startsWith('/awaiten.com')) {
+      currentPath = currentPath.replace('/awaiten.com', '');
+    }
+    
+    // Remove leading/trailing slashes
+    currentPath = currentPath.replace(/^\/+/, '').replace(/\/+$/, '');
+    
+    // If we're at the root, redirect to photography page
+    if (!currentPath || currentPath === '') {
+      window.location.replace('https://awaiten.com/photography');
+      return true; // Indicate redirect happened
+    }
+    
+    // Redirect to the main domain with photography path
+    const redirectUrl = `https://awaiten.com/photography/${currentPath}`;
+    window.location.replace(redirectUrl);
+    return true; // Indicate redirect happened
+  }
+  
+  return false; // No redirect needed
+}
 
 function App() {
+  // Check for redirect before rendering Router
+  if (checkSubdomainRedirect()) {
+    // Return null while redirecting
+    return null;
+  }
+
   return (
     <ReactLenis root>
-      <Router basename="/awaiten.com">
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Layout><Home /></Layout>} />
-          <Route path="/manifesto" element={<Layout><Manifesto /></Layout>} />
-          <Route path="/podcast" element={<Layout><Podcast /></Layout>} />
-          <Route path="/documentary" element={<Layout><CategoryPage category="Documentary" /></Layout>} />
-          <Route path="/documentary/:slug" element={<Layout><ProjectDetailPage category="documentary" /></Layout>} />
-          <Route path="/photography" element={<Layout><CategoryPage category="Photography" /></Layout>} />
-          <Route path="/photography/:slug" element={<Layout><ProjectDetailPage category="photography" /></Layout>} />
-          <Route path="/production" element={<Layout><CategoryPage category="Production" /></Layout>} />
-          <Route path="/production/:slug" element={<Layout><ProjectDetailPage category="production" /></Layout>} />
-          <Route path="/commercial" element={<Layout><CategoryPage category="Commercial" /></Layout>} />
-          <Route path="/commercial/:slug" element={<Layout><ProjectDetailPage category="commercial" /></Layout>} />
-          <Route path="/gallery/:slug" element={<GalleryPage />} />
-          <Route path="*" element={<Layout><NotFound /></Layout>} />
-        </Routes>
-      </Router>
+      <ToastProvider>
+        <Router basename="/awaiten.com">
+          <SubdomainRedirect />
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<Layout><Home /></Layout>} />
+            <Route path="/manifesto" element={<Layout><Manifesto /></Layout>} />
+            <Route path="/podcast" element={<Layout><Podcast /></Layout>} />
+            <Route path="/documentary" element={<Layout><CategoryPage category="Documentary" /></Layout>} />
+            <Route path="/documentary/:slug" element={<Layout><ProjectDetailPage category="documentary" /></Layout>} />
+            <Route path="/photography" element={<Layout><CategoryPage category="Photography" /></Layout>} />
+            <Route path="/photography/:slug" element={<GalleryPage />} />
+            <Route path="/production" element={<Layout><CategoryPage category="Production" /></Layout>} />
+            <Route path="/production/:slug" element={<Layout><ProjectDetailPage category="production" /></Layout>} />
+            <Route path="/commercial" element={<Layout><CategoryPage category="Commercial" /></Layout>} />
+            <Route path="/commercial/:slug" element={<Layout><ProjectDetailPage category="commercial" /></Layout>} />
+            <Route path="*" element={<Layout><NotFound /></Layout>} />
+          </Routes>
+        </Router>
+      </ToastProvider>
     </ReactLenis>
   );
 }
