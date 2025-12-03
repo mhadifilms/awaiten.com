@@ -8,9 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
 dist-ssr
 *.local
+
+# Don't ignore dist folder - it contains the built site for GitHub Pages
+!dist
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +24,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
