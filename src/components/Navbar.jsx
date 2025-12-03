@@ -70,7 +70,6 @@ const Navbar = () => {
     { name: 'Home', href: '/', hash: '#home' },
     { name: 'Our Work', href: '/', hash: '#work' },
     { name: 'About', href: '/', hash: '#about' },
-    { name: 'Podcast', href: '/podcast' },
     { name: 'Testimonials', href: '/', hash: '#testimonials' },
   ];
 
@@ -113,7 +112,10 @@ const Navbar = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => {
-            const isActive = activeSection === (link.hash ? link.hash.replace('#', '') : 'home');
+            const isActive = link.href === '/' 
+              ? activeSection === (link.hash ? link.hash.replace('#', '') : 'home')
+              : location.pathname === link.href;
+            
             return (
               <Link 
                 key={link.name} 

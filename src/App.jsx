@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import CategoryPage from './pages/CategoryPage';
 import ProjectDetailPage from './pages/ProjectDetail';
+import GalleryPage from './pages/GalleryPage';
 import Manifesto from './pages/Manifesto';
 import Podcast from './pages/Podcast';
 import NotFound from './pages/NotFound';
@@ -28,6 +29,7 @@ function App() {
           <Route path="/production/:slug" element={<Layout><ProjectDetailPage category="production" /></Layout>} />
           <Route path="/commercial" element={<Layout><CategoryPage category="Commercial" /></Layout>} />
           <Route path="/commercial/:slug" element={<Layout><ProjectDetailPage category="commercial" /></Layout>} />
+          <Route path="/gallery/:slug" element={<GalleryPage />} />
           <Route path="*" element={<Layout><NotFound /></Layout>} />
         </Routes>
       </Router>
