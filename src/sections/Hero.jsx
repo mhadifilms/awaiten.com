@@ -93,6 +93,8 @@ const Hero = () => {
       {/* Rich Background Gradient */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-background to-background" />
+        {/* Fade to bottom to match next section */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       <Container className="relative z-20 flex flex-col items-center text-center">
