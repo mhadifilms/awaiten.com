@@ -3,12 +3,22 @@ import { Link } from 'react-router-dom';
 import ImageWithFallback from '../ui/ImageWithFallback';
 import MotionBox from '../ui/MotionBox';
 import Container from '../ui/Container';
+import { getAssetPath } from '../../utils/assets';
 import 'lightgallery/css/lightgallery.css';
 import 'lightgallery/css/lg-zoom.css';
 import 'lightgallery/css/lg-thumbnail.css';
 import lightGallery from 'lightgallery';
 import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgZoom from 'lightgallery/plugins/zoom';
+
+// Helper function to process HTML content and fix image paths
+const processHtmlContent = (html) => {
+  if (!html) return html;
+  // Replace all /images/ paths with getAssetPath processed paths
+  return html.replace(/src="(\/images\/[^"]+)"/g, (match, path) => {
+    return `src="${getAssetPath(path)}"`;
+  });
+};
 
 const ProjectDetail = ({ project }) => {
   const galleryRef = useRef(null);
@@ -72,8 +82,9 @@ const ProjectDetail = ({ project }) => {
       contentImages.forEach(img => {
         const src = img.getAttribute('src');
         if (src) {
-          img.setAttribute('data-src', src);
-          img.setAttribute('data-thumb', src);
+          const processedSrc = getAssetPath(src);
+          img.setAttribute('data-src', processedSrc);
+          img.setAttribute('data-thumb', processedSrc);
         }
       });
 
@@ -197,7 +208,7 @@ const ProjectDetail = ({ project }) => {
                 <div 
                   ref={contentRef}
                   className="prose prose-invert prose-lg max-w-none space-y-12 [&>img]:rounded-xl [&>img]:w-full [&>h2]:text-3xl [&>h2]:font-bold [&>h2]:mt-12 [&>h2]:mb-6"
-                  dangerouslySetInnerHTML={{ __html: project.content }} 
+                  dangerouslySetInnerHTML={{ __html: processHtmlContent(project.content) }} 
                 />
               </MotionBox>
             )}
@@ -212,13 +223,13 @@ const ProjectDetail = ({ project }) => {
                  {project.otherInfo1 && project.otherInfo1.replace(/<[^>]*>/g, '').trim() !== '' && (
                    <div 
                      className="prose prose-invert prose-lg max-w-none [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-4 [&>p]:text-gray-400 [&>p]:text-lg [&>p]:leading-relaxed"
-                     dangerouslySetInnerHTML={{ __html: project.otherInfo1 }}
+                     dangerouslySetInnerHTML={{ __html: processHtmlContent(project.otherInfo1) }}
                    />
                  )}
                  {project.otherInfo2 && project.otherInfo2.replace(/<[^>]*>/g, '').trim() !== '' && (
                    <div 
                      className="prose prose-invert prose-lg max-w-none [&>h3]:text-xl [&>h3]:font-bold [&>h3]:mb-4 [&>p]:text-gray-400 [&>p]:text-lg [&>p]:leading-relaxed"
-                     dangerouslySetInnerHTML={{ __html: project.otherInfo2 }}
+                     dangerouslySetInnerHTML={{ __html: processHtmlContent(project.otherInfo2) }}
                    />
                  )}
               </MotionBox>
@@ -244,8 +255,8 @@ const ProjectDetail = ({ project }) => {
                     delay={index * 0.1}
                     duration={0.4}
                     className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-800 cursor-zoom-in gallery-item block"
-                    data-src={image} // Required for lightGallery
-                    data-thumb={image} // Required for thumbnails
+                    data-src={getAssetPath(image)} // Required for lightGallery
+                    data-thumb={getAssetPath(image)} // Required for thumbnails
                   >
                     <ImageWithFallback
                       src={image}

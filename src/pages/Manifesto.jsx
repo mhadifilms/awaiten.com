@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import Section from '../components/ui/Section';
 import Container from '../components/ui/Container';
 import BlurReveal from '../components/ui/BlurReveal';
+import { getAssetPath } from '../utils/assets';
 
 const Manifesto = () => {
   useEffect(() => {
@@ -120,7 +121,7 @@ const Manifesto = () => {
             <div className="flex items-center justify-center gap-4 pt-12 pb-8">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-800">
                 <img 
-                  src="/awaiten.com/images/mhadi.jpg" 
+                  src={getAssetPath("/images/mhadi.jpg")}
                   alt="M Hadi" 
                   className="w-full h-full object-cover"
                 />

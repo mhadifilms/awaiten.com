@@ -134,7 +134,7 @@ async function processProjects() {
     let thumbLocalPath = '';
     if (thumbUrl && thumbUrl.includes('framerusercontent.com')) {
         const filename = path.basename(new URL(thumbUrl).pathname);
-        thumbLocalPath = `/awaiten.com/images/cms/${filename}`;
+        thumbLocalPath = `/images/cms/${filename}`;
         const localFilePath = path.join(imageDir, filename);
         if (!fs.existsSync(localFilePath)) {
             console.log(`Downloading thumbnail: ${thumbUrl}`);
@@ -158,7 +158,7 @@ async function processProjects() {
         
         for (const imgUrl of images) {
             const filename = path.basename(new URL(imgUrl).pathname);
-            const localPath = `/awaiten.com/images/cms/${filename}`;
+            const localPath = `/images/cms/${filename}`;
             const localFilePath = path.join(imageDir, filename);
             
             if (!fs.existsSync(localFilePath)) {

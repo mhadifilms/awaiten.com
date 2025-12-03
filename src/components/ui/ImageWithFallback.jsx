@@ -1,4 +1,5 @@
 import React from 'react';
+import { getAssetPath } from '../../utils/assets';
 
 const ImageWithFallback = ({ 
   src, 
@@ -18,9 +19,11 @@ const ImageWithFallback = ({
     }
   };
 
+  const imgSrc = getAssetPath(src);
+
   return (
     <img 
-      src={src} 
+      src={imgSrc} 
       alt={alt}
       className={className}
       onError={handleError}

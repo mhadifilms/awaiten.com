@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react';
 import { useLenis } from 'lenis/react';
 import Container from './ui/Container';
 import Button from './ui/Button';
+import { getAssetPath } from '../utils/assets';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -102,7 +103,7 @@ const Navbar = () => {
           >
             {/* Text Logo */}
             <img 
-              src="/awaiten.com/images/branding/TextLogo.png" 
+              src={getAssetPath("/images/branding/TextLogo.png")}
               alt="Awaiten Productions" 
               className="h-8 md:h-9 object-contain" 
             />
