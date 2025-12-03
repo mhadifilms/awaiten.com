@@ -130,9 +130,9 @@ const Hero = () => {
           <div className="flex items-center justify-center gap-3 mt-6">
             <div className="flex -space-x-3">
               {[
-                '/images/reviews/Sahar.png',
-                '/images/reviews/Isa.jpg',
-                '/images/reviews/Ruqayya.jpg'
+                '/awaiten.com/images/reviews/Sahar.png',
+                '/awaiten.com/images/reviews/Isa.jpg',
+                '/awaiten.com/images/reviews/Ruqayya.jpg'
               ].map((src, i) => (
                 <div key={i} className="w-10 h-10 rounded-full border-2 border-background overflow-hidden bg-gray-800">
                   <img 
@@ -152,7 +152,7 @@ const Hero = () => {
       <div className="absolute inset-0 pointer-events-none z-10">
         {/* Camera - Top Left (Orange glow) */}
         <FloatingImage 
-          src="/images/home_icns/Camera.png"
+          src="/awaiten.com/images/home_icns/Camera.png"
           alt="Camera"
           x="-35vw" 
           y="-25vh" 
@@ -162,7 +162,7 @@ const Hero = () => {
           className="hidden md:block"
         />
         <FloatingImage 
-          src="/images/home_icns/Camera.png"
+          src="/awaiten.com/images/home_icns/Camera.png"
           alt="Camera"
           x="-35vw" 
           y="-25vh" 
@@ -174,7 +174,7 @@ const Hero = () => {
         
         {/* Monitor - Top Right (Blue glow) */}
         <FloatingImage 
-          src="/images/home_icns/Computer.png"
+          src="/awaiten.com/images/home_icns/Computer.png"
           alt="Monitor"
           x="35vw" 
           y="-22vh" 
@@ -184,7 +184,7 @@ const Hero = () => {
           className="hidden md:block"
         />
         <FloatingImage 
-          src="/images/home_icns/Computer.png"
+          src="/awaiten.com/images/home_icns/Computer.png"
           alt="Monitor"
           x="35vw" 
           y="-25vh" 
@@ -196,7 +196,7 @@ const Hero = () => {
         
         {/* Drone - Mid Left (Purple/Pink glow) */}
         <FloatingImage 
-          src="/images/home_icns/Drone.png"
+          src="/awaiten.com/images/home_icns/Drone.png"
           alt="Drone"
           x="-40vw" 
           y="-5vh" 
@@ -208,7 +208,7 @@ const Hero = () => {
         
         {/* Action Camera - Mid Right (Red glow) */}
         <FloatingImage 
-          src="/images/home_icns/GoPro.png"
+          src="/awaiten.com/images/home_icns/GoPro.png"
           alt="Action Camera"
           x="40vw" 
           y="5vh" 
@@ -220,7 +220,7 @@ const Hero = () => {
         
         {/* Mic - Bottom Left (Orange glow) */}
         <FloatingImage 
-          src="/images/home_icns/Mic.png"
+          src="/awaiten.com/images/home_icns/Mic.png"
           alt="Microphone"
           x="-25vw" 
           y="25vh" 
@@ -230,7 +230,7 @@ const Hero = () => {
           className="hidden md:block"
         />
         <FloatingImage 
-          src="/images/home_icns/Mic.png"
+          src="/awaiten.com/images/home_icns/Mic.png"
           alt="Microphone"
           x="-30vw" 
           y="25vh" 
@@ -242,7 +242,7 @@ const Hero = () => {
         
         {/* Headphones - Bottom Right (Teal glow) */}
         <FloatingImage 
-          src="/images/home_icns/Headphones.png"
+          src="/awaiten.com/images/home_icns/Headphones.png"
           alt="Headphones"
           x="25vw" 
           y="30vh" 
@@ -252,7 +252,7 @@ const Hero = () => {
           className="hidden md:block"
         />
         <FloatingImage 
-          src="/images/home_icns/Headphones.png"
+          src="/awaiten.com/images/home_icns/Headphones.png"
           alt="Headphones"
           x="30vw" 
           y="25vh" 

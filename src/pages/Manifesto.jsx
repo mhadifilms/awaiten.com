@@ -120,7 +120,7 @@ const Manifesto = () => {
             <div className="flex items-center justify-center gap-4 pt-12 pb-8">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-800">
                 <img 
-                  src="/images/mhadi.jpg" 
+                  src="/awaiten.com/images/mhadi.jpg" 
                   alt="M Hadi" 
                   className="w-full h-full object-cover"
                 />

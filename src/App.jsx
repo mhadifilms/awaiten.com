@@ -13,7 +13,7 @@ import ScrollToTop from './components/ScrollToTop';
 function App() {
   return (
     <ReactLenis root>
-      <Router>
+      <Router basename="/awaiten.com">
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Layout><Home /></Layout>} />

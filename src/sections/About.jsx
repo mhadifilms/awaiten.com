@@ -9,7 +9,7 @@ const founders = [
     id: 'hadi',
     name: 'Muhammad Hadi Yusufali',
     role: 'Co-Founder & Creative Director',
-    image: '/images/mhadi.jpg',
+    image: '/awaiten.com/images/mhadi.jpg',
     bio: 'M Hadi is a filmmaker, multimedia content creator, and co-founder of Awaiten, blending cinematic storytelling, digital media, and generative AI to create content that feels human, intentional, and genuinely memorable.',
     link: 'https://mhadi.tv',
     linkText: 'mhadi.tv'
@@ -18,7 +18,7 @@ const founders = [
     id: 'aalyan',
     name: 'Aalyan Aamir',
     role: 'Co-Founder & Lead Producer',
-    image: '/images/aalyan.jpg',
+    image: '/awaiten.com/images/aalyan.jpg',
     bio: 'Aalyan Aamir is a UC Berkeley physics student, researcher at Berkeley Lab, and co-founder of Awaiten, bringing a mix of technical rigor, drone cinematography, and community-driven storytelling to the studio.',
     link: 'https://aalyan.me',
     linkText: 'aalyan.me'

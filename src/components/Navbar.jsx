@@ -102,7 +102,7 @@ const Navbar = () => {
           >
             {/* Text Logo */}
             <img 
-              src="/images/branding/TextLogo.png" 
+              src="/awaiten.com/images/branding/TextLogo.png" 
               alt="Awaiten Productions" 
               className="h-8 md:h-9 object-contain" 
             />
