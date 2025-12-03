@@ -29,10 +29,6 @@ const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
   const [imageError, setImageError] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imagePath = getAssetPath(image);
-  // Ensure absolute URL for lightGallery
-  const absoluteImagePath = imagePath.startsWith('http') 
-    ? imagePath 
-    : `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   
   const handleImageLoad = (e) => {
     setImageLoaded(true);
@@ -45,11 +41,11 @@ const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
   return (
     <div className="mb-8">
       <div 
-        data-src={absoluteImagePath}
-        data-thumb={absoluteImagePath}
+        data-src={imagePath}
+        data-thumb={imagePath}
         className="gallery-item block overflow-hidden rounded-lg group cursor-zoom-in relative bg-gray-900"
         data-sub-html={`<h4>${projectTitle}</h4><p>Image ${index + 1}</p>`}
-        data-download-url={absoluteImagePath}
+        data-download-url={imagePath}
       >
         {/* Loading placeholder - maintains aspect ratio */}
         {!imageLoaded && !imageError && (
@@ -61,7 +57,7 @@ const GalleryImageItem = ({ image, index, projectTitle, selectedCategory }) => {
         {/* Image */}
         <img 
           alt={`Gallery image ${index + 1}`} 
-          src={absoluteImagePath}
+          src={imagePath}
           className={`w-full h-auto transition-opacity duration-500 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
@@ -133,10 +129,11 @@ const GalleryPage = () => {
     // Get cover photo for embed image
     const gallerySettings = project.gallerySettings || {};
     const coverPhoto = gallerySettings.coverPhoto || project.thumbnail;
-    const embedImagePath = coverPhoto ? getAssetPath(coverPhoto) : '/images/branding/embed.png';
+    const embedImagePath = coverPhoto ? getAssetPath(coverPhoto) : getAssetPath('/images/branding/embed.png');
+    // Construct absolute URL for meta tags (needed for external services)
     const embedImageUrl = embedImagePath.startsWith('http') 
       ? embedImagePath 
-      : `${window.location.origin}${embedImagePath.startsWith('/') ? '' : '/'}${embedImagePath}`;
+      : new URL(embedImagePath, window.location.origin).href;
 
     // Update or create og:image meta tag
     let ogImage = document.querySelector('meta[property="og:image"]');

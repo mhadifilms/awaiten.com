@@ -9,8 +9,7 @@
     "build": "vite build && cp dist/index.html dist/404.html",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "npm run build && rm -rf docs && cp -r dist docs && git add -A && git commit -m 'Deploy to docs folder' && git push"
+    "predeploy": "npm run build"
   },
   "dependencies": {
     "file-saver": "^2.0.5",

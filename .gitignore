@@ -10,10 +10,8 @@ lerna-debug.log*
 node_modules/
 dist/
 dist-ssr
+docs/
 *.local
-
-# Don't ignore docs folder - it contains the built site for GitHub Pages
-!docs
 
 # Editor directories and files
 .vscode/*
