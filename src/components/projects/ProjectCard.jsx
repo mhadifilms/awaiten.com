@@ -4,7 +4,10 @@ import ImageWithFallback from '../ui/ImageWithFallback';
 import MotionBox from '../ui/MotionBox';
 
 const ProjectCard = ({ project, index = 0, delay = 0.1 }) => {
-  const categoryRoute = `/${project.category.toLowerCase()}`;
+  // If it's a photography project, use the gallery route
+  const linkTo = project.category.toLowerCase() === 'photography' 
+    ? `/gallery/${project.slug}`
+    : `/${project.category.toLowerCase()}/${project.slug}`;
   
   return (
     <MotionBox
@@ -12,7 +15,7 @@ const ProjectCard = ({ project, index = 0, delay = 0.1 }) => {
       delay={index * delay}
     >
       <Link
-        to={`${categoryRoute}/${project.slug}`}
+        to={linkTo}
         className="group relative overflow-hidden rounded-2xl block"
       >
         <div className="aspect-[4/3] relative overflow-hidden">

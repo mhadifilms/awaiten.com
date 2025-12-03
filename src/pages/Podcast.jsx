@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Play, 
@@ -8,7 +8,8 @@ import {
   Youtube, 
   ChevronRight, 
   Music,
-  X
+  X,
+  Linkedin
 } from 'lucide-react';
 import Section from '../components/ui/Section';
 import Container from '../components/ui/Container';
@@ -45,68 +46,141 @@ const YouTubeMusicIcon = ({ size = 24, className }) => (
 );
 
 // --- Video Thumbnail Component with Error Handling ---
-const VideoThumbnail = ({ src, alt, className = "", onError, videoId }) => {
-  const [imgError, setImgError] = useState(false);
-  const [imgSrc, setImgSrc] = useState(src);
-  const [loading, setLoading] = useState(true);
+const VideoThumbnail = ({ alt, className = "", videoId }) => {
+  const [imgSrc, setImgSrc] = useState(null);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [triedOEmbed, setTriedOEmbed] = useState(false);
 
-  const handleError = () => {
-    if (!imgError) {
-      setImgError(true);
-      // Try different YouTube thumbnail formats
-      if (src.includes('hqdefault')) {
-        // Try maxresdefault
-        setImgSrc(src.replace('hqdefault', 'maxresdefault'));
-      } else if (src.includes('maxresdefault')) {
-        // Try sddefault
-        setImgSrc(src.replace('maxresdefault', 'sddefault'));
-      } else if (videoId) {
-        // Last resort: try mqdefault
-        setImgSrc(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
-      } else if (onError) {
-        onError();
-        setLoading(false);
+  // Try multiple thumbnail URL formats - start with most reliable
+  const getThumbnailUrls = (vidId) => {
+    if (!vidId) return [];
+    // Try hqdefault first as it's most commonly available
+    const formats = ['hqdefault', 'maxresdefault', 'sddefault', 'mqdefault', 'default'];
+    const urls = [];
+    formats.forEach(format => {
+      urls.push(`https://img.youtube.com/vi/${vidId}/${format}.jpg`);
+    });
+    formats.forEach(format => {
+      urls.push(`https://i.ytimg.com/vi/${vidId}/${format}.jpg`);
+    });
+    return urls;
+  };
+
+  // Fetch thumbnail using oEmbed API
+  const fetchThumbnailFromOEmbed = async (vidId) => {
+    if (triedOEmbed) return null;
+    setTriedOEmbed(true);
+    
+    try {
+      // Use no-cors mode and a proxy-friendly approach
+      const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${vidId}&format=json`;
+      const response = await fetch(oEmbedUrl, {
+        method: 'GET',
+        mode: 'cors',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.thumbnail_url) {
+          return data.thumbnail_url;
+        }
       }
-    } else {
-      // All attempts failed, show fallback
-      if (onError) {
-        onError();
-      }
-      setLoading(false);
+    } catch {
+      // Silently fail - oEmbed might not be available due to CORS
     }
+    return null;
+  };
+
+  // Reset when videoId changes
+  useEffect(() => {
+    if (!videoId) {
+      setHasError(true);
+      setIsLoading(false);
+      setImgSrc(null);
+      setAttemptCount(0);
+      setTriedOEmbed(false);
+      return;
+    }
+    
+    setHasError(false);
+    setIsLoading(true);
+    setAttemptCount(0);
+    setTriedOEmbed(false);
+    
+    // Start with direct thumbnail URL
+    const urls = getThumbnailUrls(videoId);
+    setImgSrc(urls[0]);
+  }, [videoId]);
+
+  const handleError = async () => {
+    if (!videoId) {
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    const urls = getThumbnailUrls(videoId);
+    const nextIndex = attemptCount + 1;
+
+    // Try all direct URLs first
+    if (nextIndex < urls.length) {
+      setAttemptCount(nextIndex);
+      setImgSrc(urls[nextIndex]);
+      setIsLoading(true);
+      return;
+    }
+
+    // After all direct URLs fail, try oEmbed
+    if (!triedOEmbed) {
+      setIsLoading(true);
+      const oEmbedThumbnail = await fetchThumbnailFromOEmbed(videoId);
+      if (oEmbedThumbnail) {
+        setImgSrc(oEmbedThumbnail);
+        setAttemptCount(nextIndex);
+        return;
+      }
+    }
+
+    // All attempts failed
+    setIsLoading(false);
+    setHasError(true);
   };
 
   const handleLoad = () => {
-    setLoading(false);
+    setIsLoading(false);
+    setHasError(false);
   };
 
-  if (imgError && !loading) {
-    // Fallback UI when image fails to load
+  if (!videoId || hasError) {
     return (
-      <div className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center`}>
-        <div className="text-center">
+      <div className={`${className} bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative`}>
+        <div className="text-center p-4">
           <Play size={48} className="text-white/50 mx-auto mb-2" />
-          <p className="text-white/30 text-xs">{alt}</p>
+          <p className="text-white/30 text-xs px-2 line-clamp-2">{alt}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <>
-      {loading && (
-        <div className={`${className} bg-gray-800 animate-pulse absolute inset-0`} />
+    <div className={`${className} relative overflow-hidden`}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-800 animate-pulse z-10" />
       )}
-      <img 
-        src={imgSrc} 
-        alt={alt} 
-        className={className}
-        onError={handleError}
-        onLoad={handleLoad}
-        loading="lazy"
-        style={{ display: loading ? 'none' : 'block' }}
-      />
-    </>
+      {imgSrc && (
+        <img 
+          key={`${videoId}-${attemptCount}-${imgSrc}`}
+          src={imgSrc} 
+          alt={alt} 
+          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 relative z-0`}
+          onError={handleError}
+          onLoad={handleLoad}
+          loading="lazy"
+        />
+      )}
+    </div>
   );
 };
 
@@ -115,7 +189,7 @@ const VideoModal = ({ videoId, isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
       <div className="relative w-full max-w-5xl mx-4 aspect-video" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
@@ -141,30 +215,40 @@ const VideoModal = ({ videoId, isOpen, onClose }) => {
 // --- Data ---
 
 const IN_THE_WORLD = [
-  { id: 'w1', title: 'From the World to Within: Rekindling Faith at Camp Noor (Official Documentary)', thumbnail: 'https://img.youtube.com/vi/05cdl02skipv/hqdefault.jpg', videoId: '05cdl02skipv' },
-  { id: 'w2', title: 'Why 25,000 People Gather Yearly to Celebrate Food, Community, and Unity', thumbnail: 'https://img.youtube.com/vi/f1yu1wo1dkj/hqdefault.jpg', videoId: 'f1yu1wo1dkj' },
-  { id: 'w3', title: 'The Truth Behind The Pro-Palestine Protests at US Campuses', thumbnail: 'https://img.youtube.com/vi/qpuee6x1zw/hqdefault.jpg', videoId: 'qpuee6x1zw' },
+  { id: 'w1', title: 'From the World to Within: Rekindling Faith at Camp Noor (Official Documentary)', thumbnail: 'https://img.youtube.com/vi/zkvAHvcw8DE/hqdefault.jpg', videoId: 'zkvAHvcw8DE' },
+  { id: 'w2', title: 'Why 25,000 People Gather Yearly to Celebrate Food, Community, and Unity', thumbnail: 'https://img.youtube.com/vi/yh_vlDCPPQI/hqdefault.jpg', videoId: 'yh_vlDCPPQI' },
+  { id: 'w3', title: 'The Truth Behind The Pro-Palestine Protests at US Campuses', thumbnail: 'https://img.youtube.com/vi/3InCliGukWg/hqdefault.jpg', videoId: '3InCliGukWg' },
 ];
 
 const SEASONS = [
   {
     id: 's2',
     title: 'Season 2',
+    playlistUrl: 'https://www.youtube.com/playlist?list=PLpAlE5yiBP3gTPumwQc7G9jmsEtcPRc3H',
     episodes: [
-      { id: 's2-1', title: 'Real People, Real Stories, Real Insights - Season 2 is Here.', thumbnail: 'https://img.youtube.com/vi/veb9hg03o8d/hqdefault.jpg', videoId: 'veb9hg03o8d' },
-      { id: 's2-2', title: 'The Power of Education & Mindset ft. Raza Ali', thumbnail: 'https://img.youtube.com/vi/dine9c5qhto/hqdefault.jpg', videoId: 'dine9c5qhto' },
-      { id: 's2-3', title: 'Escaping Iraq: War, Refugee Camps, and the Power of Faith ft. Jawad Almamori', thumbnail: 'https://img.youtube.com/vi/bst193gomk/hqdefault.jpg', videoId: 'bst193gomk' },
-      { id: 's2-4', title: 'From College Dropout to Renowned Restaurateur: Hisham Abdelfattah', thumbnail: 'https://img.youtube.com/vi/hz15fatyftk/hqdefault.jpg', videoId: 'hz15fatyftk' },
+      { id: 's2-7', title: 'Law Enforcement Myths & Being a Muslim Cop: Irfan Zaidi', thumbnail: 'https://img.youtube.com/vi/LOo1FpDaw9E/hqdefault.jpg', videoId: 'LOo1FpDaw9E' },
+      { id: 's2-6', title: 'The Secret to Getting 1 Billion Views with Comedy: Azfar Khan', thumbnail: 'https://img.youtube.com/vi/qCmr3NFFIdE/hqdefault.jpg', videoId: 'qCmr3NFFIdE' },
+      { id: 's2-5', title: 'Showing the Media That Muslims Also Have Fun: Irfan Rydhan and the Story of HalalFest', thumbnail: 'https://img.youtube.com/vi/kJlH3zx1jVs/hqdefault.jpg', videoId: 'kJlH3zx1jVs' },
+      { id: 's2-4', title: 'From College Dropout to Renowned Restaurateur: Hisham Abdelfattah and the Story of El Halal Amigos', thumbnail: 'https://img.youtube.com/vi/opZHgqnkh7s/hqdefault.jpg', videoId: 'opZHgqnkh7s' },
+      { id: 's2-3', title: 'Escaping Iraq: War, Refugee Camps, and the Power of Faith ft. Jawad Almamori', thumbnail: 'https://img.youtube.com/vi/3FcAWSa1Ldg/hqdefault.jpg', videoId: '3FcAWSa1Ldg' },
+      { id: 's2-2', title: 'The Power of Education & Mindset ft. Raza Ali', thumbnail: 'https://img.youtube.com/vi/RJN_m5PglPs/hqdefault.jpg', videoId: 'RJN_m5PglPs' },
     ]
   },
   {
     id: 's1',
     title: 'Season 1',
+    playlistUrl: 'https://www.youtube.com/playlist?list=PLpAlE5yiBP3gJCK54sfZDQvNwWGkXtbDv',
     episodes: [
-      { id: 's1-1', title: 'Entrepreneurs, Leaders, and Mentors: The Journey of Ahmad Ahmadzia', thumbnail: 'https://img.youtube.com/vi/ilp31syc5n9/hqdefault.jpg', videoId: 'ilp31syc5n9' },
-      { id: 's1-2', title: 'Risks, Startups, and Unconventional Routes: The Journey of Ali Mir', thumbnail: 'https://img.youtube.com/vi/n501r3vrqt/hqdefault.jpg', videoId: 'n501r3vrqt' },
-      { id: 's1-3', title: 'Friends, Faith, and Family Advocates: The Journey of Natima Neily', thumbnail: 'https://img.youtube.com/vi/svz3gt4xv6/hqdefault.jpg', videoId: 'svz3gt4xv6' },
-      { id: 's1-4', title: 'From Corporate Climber to Spiritual Seeker: The Journey of Mahdi Falahati', thumbnail: 'https://img.youtube.com/vi/e742fremhyo/hqdefault.jpg', videoId: 'e742fremhyo' },
+      { id: 's1-10', title: 'The Secrets Behind Pixar\'s Most Famous Movies ft. Eman Abdul-Razzak', thumbnail: 'https://img.youtube.com/vi/c9s8OEdERuA/hqdefault.jpg', videoId: 'c9s8OEdERuA' },
+      { id: 's1-9', title: '43 Years Volunteering at a Mosque ft. Muzaffer Khan', thumbnail: 'https://img.youtube.com/vi/lR72xZBrkZs/hqdefault.jpg', videoId: 'lR72xZBrkZs' },
+      { id: 's1-8', title: 'Cooking, Creativity, and Community ft. Abbas Mohamed', thumbnail: 'https://img.youtube.com/vi/BQEJyiOT3kg/hqdefault.jpg', videoId: 'BQEJyiOT3kg' },
+      { id: 's1-7', title: 'Unlocking Global Impact through Business ft. Mir Aamir', thumbnail: 'https://img.youtube.com/vi/A4zGTaW6vfU/hqdefault.jpg', videoId: 'A4zGTaW6vfU' },
+      { id: 's1-6', title: 'AI - the Good, the Bad, and the Ugly ft. Nazneen Rajani', thumbnail: 'https://img.youtube.com/vi/a7jMrGHX5P4/hqdefault.jpg', videoId: 'a7jMrGHX5P4' },
+      { id: 's1-5', title: 'From Punk Rock to PhD: The Journey of David Coolidge', thumbnail: 'https://img.youtube.com/vi/OJP0fubChH0/hqdefault.jpg', videoId: 'OJP0fubChH0' },
+      { id: 's1-4', title: 'From Corporate Climber to Spiritual Seeker: The Journey of Mahdi Falahati', thumbnail: 'https://img.youtube.com/vi/tg5nFaIgVFg/hqdefault.jpg', videoId: 'tg5nFaIgVFg' },
+      { id: 's1-3', title: 'Friends, Faith, and Family Advocates: The Journey of Natima Neily', thumbnail: 'https://img.youtube.com/vi/3Y02YIphMAA/hqdefault.jpg', videoId: '3Y02YIphMAA' },
+      { id: 's1-2', title: 'Risks, Startups, and Unconventional Routes: The Journey of Ali Mir', thumbnail: 'https://img.youtube.com/vi/cvx4cxLYVh4/hqdefault.jpg', videoId: 'cvx4cxLYVh4' },
+      { id: 's1-1', title: 'Entrepreneurs, Leaders, and Mentors: The Journey of Ahmad Ahmadzia', thumbnail: 'https://img.youtube.com/vi/JgU_n00d0JU/hqdefault.jpg', videoId: 'JgU_n00d0JU' },
     ]
   },
 ];
@@ -191,31 +275,35 @@ const TESTIMONIALS = [
 const HOSTS = [
   {
     name: "M Hadi",
-    role: "Host",
     image: "/images/mhadi.jpg",
-    bio: "Aute est ipsum aliquip consequat nulla sunt cillum reprehenderit. Fugiat anim cillum qui cupidatat ex duis sit cillum sit ut adipisicing.",
-    socials: { youtube: "#", instagram: "#", twitter: "#" }
+    bio: "M Hadi is a filmmaker and co-founder of Journey Tellers, where he uses his background in film and AI-powered video to craft cinematic, story-driven conversations with guests from all walks of life.",
+    socials: { 
+      youtube: "https://www.youtube.com/@mhadifilms", 
+      instagram: "https://www.instagram.com/mhadifilms", 
+      linkedin: "https://www.linkedin.com/in/mhadimedia/" 
+    }
   },
   {
     name: "Ali Almathkur",
-    role: "Host",
-    image: "/images/aalyan.jpg", 
-    bio: "Aute est ipsum aliquip consequat nulla sunt cillum reprehenderit. Fugiat anim cillum qui cupidatat ex duis sit cillum sit ut adipisicing.",
-    socials: { youtube: "#", instagram: "#", twitter: "#" }
+    image: "/images/ali.jpg", 
+    bio: "Ali Almathkur is the co-founder and co-host of Journey Tellers, known for his calm, curious interview style and his focus on honest, nuanced conversations about faith, community, and unconventional careers.",
+    socials: { 
+      youtube: "https://www.youtube.com/@alialmathkur", 
+      instagram: "https://www.instagram.com/alialmathkur", 
+      linkedin: "https://www.linkedin.com/in/ali-almathkur-65783521b/" 
+    }
   }
 ];
 
 // --- Shared Platform Icon Component ---
 const PlatformIcon = ({ 
   icon: Icon, 
-  bgColor, 
+  href,
   size = 'md', 
-  shape = 'circle',
-  delay = 0,
-  shadowColor,
   className = '',
   title,
-  iconProps = {}
+  iconProps = {},
+  isYouTube = false
 }) => {
   const sizeClasses = {
     sm: 'w-12 h-12',
@@ -229,179 +317,319 @@ const PlatformIcon = ({
     lg: 32
   };
 
-  const shapeClasses = shape === 'square' ? 'rounded-xl' : 'rounded-full';
-  const bgStyle = typeof bgColor === 'string' && bgColor.includes('gradient')
-    ? { background: bgColor }
-    : { backgroundColor: bgColor };
+  // Special styling for YouTube to ensure visibility
+  const bgClass = isYouTube 
+    ? 'bg-red-600/20 border-red-500/30 text-red-400 hover:bg-red-600/30 hover:border-red-500/50 hover:text-red-300'
+    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/20 hover:text-white';
 
-  return (
+  const iconElement = (
     <div 
-      className={`${sizeClasses[size]} ${shapeClasses} flex items-center justify-center text-white group-hover:scale-110 transition-transform shadow-lg ${className}`}
-      style={{
-        ...bgStyle,
-        boxShadow: shadowColor ? `0 10px 30px ${shadowColor}` : undefined,
-        transitionDelay: `${delay}ms`
-      }}
+      className={`${sizeClasses[size]} rounded-full flex items-center justify-center ${bgClass} hover:scale-110 transition-all duration-300 ${className}`}
       title={title}
     >
       <Icon size={iconSizes[size]} {...iconProps} />
     </div>
   );
+
+  if (href) {
+    return (
+      <a 
+        href={href} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="inline-block"
+      >
+        {iconElement}
+      </a>
+    );
+  }
+
+  return iconElement;
 };
+
+// --- Shared Design Constants ---
+const SECTION_PADDING = 'py-12 md:py-16';
+const SECTION_BG = 'bg-[#020617]';
+const CARD_BG = 'bg-[#0A1128]';
+const CARD_BG_HOVER = 'hover:bg-[#0D1425]';
+const CARD_BORDER = 'border border-white/5';
+const CARD_BORDER_HOVER = 'hover:border-white/10';
+const CARD_ROUNDED = 'rounded-2xl';
+const RED_ACCENT = 'bg-red-500';
+const TEXT_PRIMARY = 'text-white';
+const TEXT_SECONDARY = 'text-gray-300';
+const TEXT_MUTED = 'text-gray-400';
+
+// --- Shared Section Header Component ---
+const SectionHeader = ({ label, title, description, className = '' }) => (
+  <div className={`text-center mb-12 ${className}`}>
+    {label && (
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <div className={`h-[1px] w-12 ${RED_ACCENT}`}></div>
+        <span className={`${RED_ACCENT} uppercase tracking-[0.2em] text-sm font-bold`}>{label}</span>
+        <div className={`h-[1px] w-12 ${RED_ACCENT}`}></div>
+      </div>
+    )}
+    {title && (
+      <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">{title}</h2>
+    )}
+    {description && (
+      <p className={`${TEXT_MUTED} text-lg max-w-2xl mx-auto`}>{description}</p>
+    )}
+  </div>
+);
 
 // --- Sub-Components ---
 
-const HeroSection = () => (
-  <section className="relative min-h-[90vh] flex flex-col justify-center items-center overflow-hidden bg-[#020617]">
-    {/* Creative Background */}
-    <div className="absolute inset-0 z-0">
-      <div className="absolute inset-0 bg-[url('/images/branding/PodcastBG.png')] bg-cover bg-center scale-105 blur-sm opacity-80" />
-      {/* Subtle blue overlay gradient for styling */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#020617]/80 via-[#020617]/20 to-[#020617]" />
-      {/* Smooth fade transition at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#020617] to-transparent" />
-    </div>
+const HeroSection = ({ onVideoClick }) => {
+  const latestVideoId = SEASONS[0]?.episodes[0]?.videoId || 'WgvWTu-pKew'; // Season 2 Episode 1
 
-    <Container className="relative z-10 text-center max-w-5xl mx-auto px-6 pb-20">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="mb-8"
-      >
-        <h2 className="text-red-500 font-bold tracking-[0.3em] uppercase text-sm md:text-base mb-6">Journey Tellers</h2>
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white mb-8 leading-tight tracking-tight drop-shadow-2xl">
-          Stories of the<br/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">Muslim West</span>
-        </h1>
-      </motion.div>
+  const scrollToHosts = () => {
+    const hostsSection = document.getElementById('hosts');
+    if (hostsSection) {
+      hostsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
-      <motion.p 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-12 leading-relaxed font-light"
-      >
-        Celebrating entrepreneurs, chefs, doctors, animators, converts, and educators. 
-        <span className="block mt-2 text-white font-medium">Every failure is a lesson. Every story matters.</span>
-      </motion.p>
+  return (
+    <section className="relative min-h-[90vh] flex flex-col justify-center items-center bg-[#020617]">
+      {/* Creative Background - Contained */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/images/branding/PodcastBG.png')] bg-cover bg-center scale-105 blur-sm opacity-80" />
+        {/* Subtle blue overlay gradient for styling */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020617]/80 via-[#020617]/20 to-[#020617]" />
+        {/* Smooth fade transition at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#020617] to-transparent" />
+      </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-        className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8"
-      >
-        <p className="text-sm text-gray-400 uppercase tracking-widest">Featuring</p>
-        <div className="flex items-center gap-3">
-          <span className="text-white font-semibold">Muhammad Hadi Yusufali</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-          <span className="text-white font-semibold">Ali Almathkur</span>
-        </div>
-      </motion.div>
+      <Container className="relative z-10 text-center max-w-5xl mx-auto px-6 pb-12 md:pb-16">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="mb-8"
+        >
+          <h2 className="text-red-500 font-bold tracking-[0.3em] uppercase text-sm md:text-base mb-6">JOURNEY TELLERS</h2>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 leading-tight tracking-tight drop-shadow-2xl">
+            Reading and writing the<br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">stories of the Muslim West</span>
+          </h1>
+        </motion.div>
+
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed font-light"
+        >
+          Celebrating entrepreneurs, chefs, doctors, animators, converts, and educators. 
+          <span className="block mt-2 text-white font-medium">Every failure is a lesson. Every story matters.</span>
+        </motion.p>
+
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12 leading-relaxed font-light"
+        >
+          Ft. <span className="text-white font-medium">Muhammad Hadi Yusufali</span> & <span className="text-white font-medium">Ali Almathkur</span>
+        </motion.p>
       
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 0.8 }}
-        className="mt-12"
-      >
-         <Button variant="primary" className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-all transform hover:scale-105 shadow-lg">
-           Support Us
-         </Button>
-      </motion.div>
-    </Container>
-    
-    {/* Overlapping 'What's Your Story' Text - Fixed visibility */}
-    <div className="absolute bottom-0 left-0 right-0 transform translate-y-1/2 z-20 pointer-events-none">
-       <h2 className="text-[12vw] md:text-[10vw] font-black text-white text-center tracking-tighter uppercase leading-none opacity-30 select-none">
-         What's Your Story?
-       </h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8"
+        >
+          <Button 
+            variant="primary" 
+            className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-all transform hover:scale-105 shadow-lg w-full sm:w-auto"
+            onClick={() => onVideoClick && onVideoClick(latestVideoId)}
+          >
+            Latest Video
+          </Button>
+          <Button 
+            variant="outline" 
+            className="px-8 py-3 rounded-full font-bold w-full sm:w-auto"
+            onClick={scrollToHosts}
+          >
+            About Us
+          </Button>
+        </motion.div>
+      </Container>
+      
+      {/* Overlapping 'What's Your Story' Text - Creative Design */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none overflow-hidden" style={{ transform: 'translateY(30%)' }}>
+        <div className="relative w-full flex items-center justify-center px-4 sm:px-6 md:px-8 py-0">
+          {/* Background blur layer for depth */}
+          <h2 
+            className="text-[10vw] sm:text-[9vw] md:text-[7vw] lg:text-[6vw] xl:text-[5vw] font-black text-white text-center tracking-tight sm:tracking-[-0.01em] uppercase leading-[0.75] select-none whitespace-nowrap absolute m-0 p-0"
+            style={{
+              opacity: 0.08,
+              filter: 'blur(6px)',
+              transform: 'translateY(1px)',
+            }}
+          >
+            What's Your Story?
+          </h2>
+          
+          {/* Main text */}
+          <h2 
+            className="relative text-[10vw] sm:text-[9vw] md:text-[7vw] lg:text-[6vw] xl:text-[5vw] font-black text-white text-center tracking-tight sm:tracking-[-0.01em] uppercase leading-[0.75] select-none whitespace-nowrap m-0 p-0"
+            style={{
+              opacity: 0.25,
+              textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            What's Your Story?
+          </h2>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const DocumentarySection = ({ title, description, episodes, onVideoClick }) => {
+  if (!episodes || episodes.length === 0) return null;
+  const [featured, ...others] = episodes;
+
+  return (
+    <div className={`${SECTION_PADDING} border-b border-white/5`}>
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div className="max-w-3xl">
+          <div className="flex items-center gap-4 mb-4">
+             <div className={`h-[1px] w-12 ${RED_ACCENT}`}></div>
+             <span className={`${RED_ACCENT} uppercase tracking-[0.2em] text-sm font-bold`}>Documentaries</span>
+          </div>
+          <h3 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-none">{title}</h3>
+          {description && <p className={`${TEXT_MUTED} text-lg md:text-xl font-light leading-relaxed max-w-2xl`}>{description}</p>}
+        </div>
+        <button className="group flex items-center gap-3 text-white font-medium uppercase tracking-widest text-sm hover:text-red-500 transition-colors">
+           View All Documentaries
+           <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center group-hover:border-red-500 group-hover:bg-red-500/10 transition-all">
+             <ChevronRight size={14} />
+           </div>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Featured Video - Large */}
+        <div className="lg:col-span-8 group cursor-pointer" onClick={() => onVideoClick(featured.videoId)}>
+           <div className={`aspect-video ${CARD_ROUNDED} overflow-hidden relative shadow-2xl ${CARD_BORDER}`}>
+              <VideoThumbnail 
+                alt={featured.title} 
+                videoId={featured.videoId}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              {/* Darker gradient at bottom */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 via-black/40 to-transparent opacity-90 group-hover:opacity-75 transition-opacity" />
+              
+              {/* Play button overlay */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border-2 border-white/30 shadow-2xl transition-all duration-300 group-hover:bg-white/30 group-hover:border-white/50">
+                   <Play size={32} className="text-white ml-1" fill="currentColor" />
+                </div>
+              </div>
+
+              {/* Text overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 max-w-3xl z-10">
+                 <span className="inline-block px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold uppercase tracking-wider mb-3">Featured Documentary</span>
+                 <h4 className="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2 group-hover:text-red-400 transition-colors">{featured.title}</h4>
+              </div>
+           </div>
+        </div>
+
+        {/* Sidebar List - Vertical */}
+        <div className="lg:col-span-4 flex flex-col gap-6">
+           {others.map((ep) => (
+             <div key={ep.id} className={`group/item cursor-pointer flex gap-4 items-start p-4 ${CARD_ROUNDED} ${CARD_BG_HOVER} transition-colors ${CARD_BORDER} ${CARD_BORDER_HOVER}`} onClick={() => onVideoClick(ep.videoId)}>
+                <div className="w-32 aspect-video rounded-lg bg-gray-800 overflow-hidden relative shrink-0 shadow-lg">
+                   <VideoThumbnail 
+                     alt={ep.title} 
+                     videoId={ep.videoId}
+                     className="w-full h-full object-cover opacity-80 group-hover/item:opacity-100 transition-all"
+                   />
+                </div>
+                <div>
+                   <h5 className="text-white font-bold text-sm leading-snug mb-2 line-clamp-3 group-hover/item:text-red-400 transition-colors">{ep.title}</h5>
+                   <span className="text-xs text-gray-500 uppercase tracking-wider font-medium flex items-center gap-2">
+                     <Play size={10} /> Watch Now
+                   </span>
+                </div>
+             </div>
+           ))}
+        </div>
+      </div>
     </div>
-  </section>
-);
+  );
+};
 
 const PlatformLinks = () => (
-  <section className="py-12 bg-[#020617] border-t border-white/5">
+  <section className={`${SECTION_PADDING} ${SECTION_BG} border-t border-white/5`}>
     <Container>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Watch */}
-        <div className="bg-[#0A1128] rounded-3xl p-8 flex flex-col items-center text-center hover:bg-[#0D1425] transition-colors group cursor-pointer border border-white/5 shadow-lg">
+        <div className={`${CARD_BG} rounded-3xl p-8 flex flex-col items-center text-center ${CARD_BG_HOVER} transition-colors ${CARD_BORDER} shadow-lg`}>
           <h3 className="text-xl font-bold text-white mb-6">Watch</h3>
           <div className="flex items-center justify-center gap-4">
              <PlatformIcon 
                icon={Youtube} 
-               bgColor="#FF0000" 
+               href="https://www.youtube.com/channel/UC8RY70d8KyIMicnrGtwVOAA"
                size="md"
-               shape="circle"
-               delay={0}
-               shadowColor="rgba(255, 0, 0, 0.3)"
                title="YouTube"
                iconProps={{ fill: "currentColor" }}
+               isYouTube={true}
              />
              <PlatformIcon 
                icon={SpotifyIcon} 
-               bgColor="#1DB954" 
+               href="https://open.spotify.com/show/6QAqMcRyGUBL3tAyLa72dT"
                size="md"
-               shape="circle"
-               delay={75}
-               shadowColor="rgba(29, 185, 84, 0.3)"
                title="Spotify"
              />
           </div>
         </div>
 
         {/* Listen */}
-        <div className="bg-[#0A1128] rounded-3xl p-8 flex flex-col items-center text-center hover:bg-[#0D1425] transition-colors group cursor-pointer border border-white/5 shadow-lg">
+        <div className={`${CARD_BG} rounded-3xl p-8 flex flex-col items-center text-center ${CARD_BG_HOVER} transition-colors ${CARD_BORDER} shadow-lg`}>
           <h3 className="text-xl font-bold text-white mb-6">Listen</h3>
           <div className="flex items-center justify-center gap-4">
              <PlatformIcon 
                icon={SpotifyIcon} 
-               bgColor="#1DB954" 
+               href="https://open.spotify.com/show/6QAqMcRyGUBL3tAyLa72dT"
                size="md"
-               shape="circle"
-               delay={0}
                title="Spotify"
              />
              <PlatformIcon 
                icon={ApplePodcastsIcon} 
-               bgColor="#A020F0" 
+               href="https://podcasts.apple.com/us/podcast/journey-tellers/id1679027751"
                size="md"
-               shape="circle"
-               delay={75}
                title="Apple Podcasts"
              />
              <PlatformIcon 
                icon={YouTubeMusicIcon} 
-               bgColor="#FF0000" 
+               href="https://music.youtube.com/playlist?list=PLpAlE5yiBP3j7ja00oROCYUgjIcsUAht9&si=Hsrwffi2CPu3ZgDC"
                size="md"
-               shape="circle"
-               delay={100}
                title="YouTube Music"
+               isYouTube={true}
              />
           </div>
         </div>
 
         {/* Clips */}
-        <div className="bg-[#0A1128] rounded-3xl p-8 flex flex-col items-center text-center hover:bg-[#0D1425] transition-colors group cursor-pointer border border-white/5 shadow-lg">
+        <div className={`${CARD_BG} rounded-3xl p-8 flex flex-col items-center text-center ${CARD_BG_HOVER} transition-colors ${CARD_BORDER} shadow-lg`}>
           <h3 className="text-xl font-bold text-white mb-6">Clips</h3>
           <div className="flex items-center justify-center gap-4">
              <PlatformIcon 
                icon={Instagram} 
-               bgColor="linear-gradient(135deg, #F58529 0%, #DD2A7B 50%, #8134AF 100%)" 
+               href="https://www.instagram.com/journey.tellers/"
                size="md"
-               shape="circle"
-               delay={0}
                title="Instagram"
              />
              <PlatformIcon 
                icon={TikTokIcon} 
-               bgColor="#000000" 
+               href="https://www.tiktok.com/@journeytellers"
                size="md"
-               shape="circle"
-               delay={75}
-               className="border border-white/10"
                title="TikTok"
              />
           </div>
@@ -412,90 +640,23 @@ const PlatformLinks = () => (
   </section>
 );
 
-const FeaturedGrid = ({ title, description, episodes, onViewAll, onVideoClick }) => {
-  if (!episodes || episodes.length === 0) return null;
-  
-  const [latest, ...others] = episodes;
 
-  return (
-    <div className="py-12">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 px-4 md:px-0 gap-4">
-        <div>
-          <h3 className="text-3xl font-bold text-white mb-2">{title}</h3>
-          {description && <p className="text-gray-400 text-sm max-w-2xl">{description}</p>}
-        </div>
-        {onViewAll && (
-          <button className="text-xs md:text-sm font-medium text-gray-400 hover:text-white flex items-center gap-2 transition-colors uppercase tracking-wider whitespace-nowrap">
-            View Full Playlist <ChevronRight size={14} />
-          </button>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 md:px-0">
-        {/* Stacked List (Left) */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
-           {others.map((ep) => (
-             <div key={ep.id} className="group cursor-pointer flex gap-4 items-start" onClick={() => onVideoClick(ep.videoId)}>
-                <div className="w-40 aspect-video rounded-xl bg-gray-800 overflow-hidden relative border border-white/5 shadow-lg shrink-0">
-                   <VideoThumbnail 
-                     src={ep.thumbnail} 
-                     alt={ep.title} 
-                     videoId={ep.videoId}
-                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 group-hover:opacity-100"
-                   />
-                   <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
-                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform">
-                         <Play size={14} fill="currentColor" className="text-white ml-1" />
-                      </div>
-                   </div>
-                </div>
-                <div>
-                   <h4 className="text-white font-bold text-sm leading-tight group-hover:text-red-500 transition-colors line-clamp-3">{ep.title}</h4>
-                   <p className="text-gray-500 text-[10px] font-medium mt-2 uppercase tracking-wide">Watch Now</p>
-                </div>
-             </div>
-           ))}
-        </div>
-
-        {/* Featured Item (Right) */}
-        <div className="lg:col-span-2 group cursor-pointer relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl" onClick={() => onVideoClick(latest.videoId)}>
-            <div className="absolute inset-0 bg-gray-900">
-               <VideoThumbnail 
-                 src={latest.thumbnail} 
-                 alt={latest.title} 
-                 videoId={latest.videoId}
-                 className="w-full h-full object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
-               />
-               <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-90"></div>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 flex flex-col items-start">
-               <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold uppercase tracking-widest rounded-full mb-4 shadow-lg">Latest Episode</span>
-               <h3 className="text-2xl md:text-4xl font-bold text-white mb-4 leading-tight group-hover:text-red-400 transition-colors shadow-black drop-shadow-md">{latest.title}</h3>
-               <div className="flex items-center gap-3 group/btn">
-                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black group-hover/btn:bg-red-600 group-hover/btn:text-white transition-all shadow-lg">
-                     <Play size={24} fill="currentColor" className="ml-1" />
-                  </div>
-                  <span className="text-white font-bold text-sm tracking-widest uppercase opacity-0 -translate-x-4 group-hover/btn:opacity-100 group-hover/btn:translate-x-0 transition-all duration-300">Watch Now</span>
-               </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const EpisodeGrid = ({ title, description, episodes, onViewAll, onVideoClick }) => (
-  <div className="py-12">
+const EpisodeGrid = ({ title, description, episodes, playlistUrl, onVideoClick }) => (
+  <div className={SECTION_PADDING}>
     <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 px-4 md:px-0 gap-4">
       <div>
         <h3 className="text-3xl font-bold text-white mb-2">{title}</h3>
-        {description && <p className="text-gray-400 text-sm max-w-2xl">{description}</p>}
+        {description && <p className={`${TEXT_MUTED} text-sm max-w-2xl`}>{description}</p>}
       </div>
-      {onViewAll && (
-        <button className="text-xs md:text-sm font-medium text-gray-400 hover:text-white flex items-center gap-2 transition-colors uppercase tracking-wider whitespace-nowrap">
+      {playlistUrl && (
+        <a 
+          href={playlistUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs md:text-sm font-medium text-gray-400 hover:text-white flex items-center gap-2 transition-colors uppercase tracking-wider whitespace-nowrap"
+        >
           View Full Playlist <ChevronRight size={14} />
-        </button>
+        </a>
       )}
     </div>
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 md:px-0">
@@ -503,7 +664,6 @@ const EpisodeGrid = ({ title, description, episodes, onViewAll, onVideoClick }) 
         <div key={ep.id} className="group cursor-pointer" onClick={() => onVideoClick(ep.videoId)}>
           <div className="aspect-video rounded-xl bg-gray-800 overflow-hidden mb-3 relative border border-white/5 shadow-lg">
              <VideoThumbnail 
-               src={ep.thumbnail} 
                alt={ep.title} 
                videoId={ep.videoId}
                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 group-hover:opacity-100"
@@ -523,26 +683,25 @@ const EpisodeGrid = ({ title, description, episodes, onViewAll, onVideoClick }) 
 );
 
 const HostsSection = () => (
-  <section className="py-24 bg-[#020617]">
+  <section id="hosts" className={`${SECTION_PADDING} ${SECTION_BG}`}>
     <Container>
-      <div className="text-center mb-16">
-         <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Meet the Hosts</h2>
-         <div className="w-24 h-1 bg-red-500 mx-auto rounded-full"></div>
-      </div>
+      <SectionHeader title="Meet the Hosts" />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 max-w-6xl mx-auto">
         {HOSTS.map((host, i) => (
-          <div key={i} className="bg-[#0A1128] rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 border border-white/5 hover:border-white/10 transition-all group hover:-translate-y-1 shadow-xl">
+          <div key={i} className={`${CARD_BG} rounded-3xl p-8 flex flex-col sm:flex-row items-center gap-8 ${CARD_BORDER} ${CARD_BORDER_HOVER} transition-all group hover:-translate-y-1 shadow-xl`}>
             <div className="w-32 h-32 md:w-40 md:h-40 shrink-0 rounded-full overflow-hidden border-4 border-[#020617] shadow-xl group-hover:border-red-500/50 transition-colors duration-300">
               <img src={getAssetPath(host.image)} alt={host.name} className="w-full h-full object-cover" />
             </div>
-            <div className="text-center md:text-left">
+            <div className="text-center sm:text-left flex-1">
               <h3 className="text-2xl font-bold text-white mb-1">{host.name}</h3>
               <p className="text-red-400 text-sm font-medium uppercase tracking-widest mb-4">{host.role}</p>
-              <p className="text-gray-400 text-sm leading-relaxed mb-6">{host.bio}</p>
-              <div className="flex justify-center md:justify-start gap-4">
+              <p className={`${TEXT_MUTED} text-sm leading-relaxed mb-6 line-clamp-3`}>{host.bio}</p>
+              <div className="flex justify-center sm:justify-start gap-4">
                 <a 
                   href={host.socials.youtube} 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-red-600 hover:text-white transition-all"
                   aria-label="YouTube"
                 >
@@ -550,17 +709,21 @@ const HostsSection = () => (
                 </a>
                 <a 
                   href={host.socials.instagram} 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-pink-600 hover:text-white transition-all"
                   aria-label="Instagram"
                 >
                   <Instagram size={18} />
                 </a>
                 <a 
-                  href={host.socials.twitter} 
-                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-blue-500 hover:text-white transition-all"
-                  aria-label="Twitter"
+                  href={host.socials.linkedin} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all"
+                  aria-label="LinkedIn"
                 >
-                  <Twitter size={18} />
+                  <Linkedin size={18} />
                 </a>
               </div>
             </div>
@@ -572,19 +735,70 @@ const HostsSection = () => (
 );
 
 const TestimonialsSection = () => (
-  <section className="py-24 bg-[#020617]">
+  <section className={`${SECTION_PADDING} ${SECTION_BG} border-t border-white/5`}>
     <Container>
-      <div className="text-center mb-16">
-         <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">What People Say</h2>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <SectionHeader 
+        label="Testimonials" 
+        title="What People Say" 
+        description="Hear from our community about their Journey Tellers experience"
+      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
         {TESTIMONIALS.map((t, i) => (
-          <div key={i} className="bg-[#0A1128] p-8 rounded-3xl hover:bg-[#0D1425] transition-all duration-300 border border-white/5 flex flex-col hover:-translate-y-1 shadow-lg hover:shadow-xl items-center text-center justify-center min-h-[200px]">
-            <div className="relative">
-               <p className="text-gray-300 text-sm leading-relaxed italic">"{t.text}"</p>
+          <div key={i} className={`group relative bg-gradient-to-br from-[#0A1128] to-[#0D1425] p-8 ${CARD_ROUNDED} ${CARD_BORDER} ${CARD_BORDER_HOVER} transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-2xl`}>
+            <div className="absolute top-6 left-6 text-red-500/20 text-6xl font-serif leading-none">"</div>
+            <div className="relative z-10">
+              <p className={`${TEXT_SECONDARY} text-base leading-relaxed pl-4`}>{t.text}</p>
             </div>
           </div>
         ))}
+      </div>
+    </Container>
+  </section>
+);
+
+const CTASection = () => (
+  <section className={`py-16 md:py-24 bg-gradient-to-br from-[#0A1128] via-[#020617] to-[#0A1128] border-t border-white/5`}>
+    <Container>
+      <div className="max-w-4xl mx-auto text-center">
+        <SectionHeader 
+          title="Start Your Journey Today"
+          description="Subscribe to Journey Tellers and never miss a story. Watch on YouTube, listen on your favorite podcast platform, or follow us for clips and updates."
+          className="mb-10"
+        />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Button
+            variant="primary"
+            className="px-8 py-3 rounded-full font-bold w-full sm:w-auto"
+            onClick={() => window.open('https://www.youtube.com/channel/UC8RY70d8KyIMicnrGtwVOAA', '_blank')}
+          >
+            Subscribe on YouTube
+            <ChevronRight size={18} className="ml-2" />
+          </Button>
+          <Button
+            variant="outline"
+            className="px-8 py-3 rounded-full font-bold w-full sm:w-auto"
+            onClick={() => window.open('https://open.spotify.com/show/6QAqMcRyGUBL3tAyLa72dT', '_blank')}
+          >
+            Listen on Spotify
+            <Music size={18} className="ml-2" />
+          </Button>
+        </div>
+        <div className={`mt-8 flex items-center justify-center gap-6 ${TEXT_MUTED} text-sm`}>
+          <a href="https://www.instagram.com/journey.tellers/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
+            <Instagram size={18} />
+            Instagram
+          </a>
+          <span>•</span>
+          <a href="https://www.tiktok.com/@journeytellers" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
+            <TikTokIcon size={18} />
+            TikTok
+          </a>
+          <span>•</span>
+          <a href="https://podcasts.apple.com/us/podcast/journey-tellers/id1679027751" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
+            <ApplePodcastsIcon size={18} />
+            Apple Podcasts
+          </a>
+        </div>
       </div>
     </Container>
   </section>
@@ -605,29 +819,30 @@ const Podcast = () => {
 
   return (
     <main className="bg-[#020617] text-white min-h-screen overflow-x-hidden font-sans">
-      <HeroSection />
+      <HeroSection onVideoClick={handleVideoClick} />
       
       {/* Spacer to account for the negative margin overlap */}
-      <div className="pt-24">
+      <div className="pt-12 md:pt-16">
         <PlatformLinks />
       </div>
 
       <HostsSection />
       
-      <Container className="py-12">
-        <FeaturedGrid 
+      <Container>
+        <DocumentarySection 
           title="In The World" 
           description="Documentaries with the goal of sharing raw & authentic stories of success, failure, and everything in between."
           episodes={IN_THE_WORLD} 
-          onViewAll 
           onVideoClick={handleVideoClick}
         />
         {SEASONS.map((season) => (
-          <EpisodeGrid key={season.id} title={season.title} episodes={season.episodes} onViewAll onVideoClick={handleVideoClick} />
+          <EpisodeGrid key={season.id} title={season.title} episodes={season.episodes} playlistUrl={season.playlistUrl} onVideoClick={handleVideoClick} />
         ))}
       </Container>
 
       <TestimonialsSection />
+
+      <CTASection />
 
       {/* Video Modal */}
       <VideoModal 
