@@ -35,8 +35,8 @@ const FloatingImage = ({ src, alt, delay, x, y, scale = 1, glowColor = "rgba(255
               left: '-25%',
             }}
           />
-          <img 
-            src={getAssetPath(src)}
+          <img
+            src={getAssetPath(src, { width: 200 })}
             alt={alt}
             className="relative w-24 md:w-32 lg:w-40 h-auto z-10"
             style={{ 
@@ -138,8 +138,8 @@ const Hero = () => {
                 '/images/reviews/Ruqayya.jpg'
               ].map((src, i) => (
                 <div key={i} className="w-10 h-10 rounded-full border-2 border-background overflow-hidden bg-gray-800">
-                  <img 
-                    src={getAssetPath(src)}
+                  <img
+                    src={getAssetPath(src, { width: 100 })}
                     alt={`Client ${i + 1}`}
                     className="w-full h-full object-cover"
                   />

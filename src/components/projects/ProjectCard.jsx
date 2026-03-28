@@ -22,6 +22,7 @@ const ProjectCard = ({ project, index = 0, delay = 0.1 }) => {
           <ImageWithFallback
             src={project.thumbnail}
             alt={project.title}
+            width={800}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${project.thumbnailPosition || 'object-center'}`}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300" />

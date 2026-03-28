@@ -1,13 +1,15 @@
 import React from 'react';
 import { getAssetPath } from '../../utils/assets';
 
-const ImageWithFallback = ({ 
-  src, 
-  alt, 
-  className = '', 
+const ImageWithFallback = ({
+  src,
+  alt,
+  className = '',
   fallbackGradient = 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
   onError,
-  ...props 
+  width,
+  quality,
+  ...props
 }) => {
   const handleError = (e) => {
     e.target.style.display = 'none';
@@ -19,11 +21,16 @@ const ImageWithFallback = ({
     }
   };
 
-  const imgSrc = getAssetPath(src);
+  const transformOpts = {};
+  if (width) transformOpts.width = width;
+  if (quality) transformOpts.quality = quality;
+  const imgSrc = Object.keys(transformOpts).length > 0
+    ? getAssetPath(src, transformOpts)
+    : getAssetPath(src);
 
   return (
-    <img 
-      src={imgSrc} 
+    <img
+      src={imgSrc}
       alt={alt}
       className={className}
       onError={handleError}

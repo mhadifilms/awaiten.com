@@ -616,6 +616,7 @@ const ProjectDetail = ({ project }) => {
                     <ImageWithFallback
                       src={image}
                       alt={`${project.title} gallery image ${index + 1}`}
+                      width={800}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                   </MotionBox>

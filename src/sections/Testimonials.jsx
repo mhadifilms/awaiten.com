@@ -50,6 +50,7 @@ const Testimonials = () => {
                 <ImageWithFallback
                   src={testimonials[currentIndex].image}
                   alt={testimonials[currentIndex].author}
+                  width={200}
                   className="w-full h-full object-cover"
                   fallbackGradient="linear-gradient(135deg, #4b5563 0%, #1f2937 100%)"
                 />

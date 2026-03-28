@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import Section from '../components/ui/Section';
 import AnimatedHeading from '../components/ui/AnimatedHeading';
 import ImageWithFallback from '../components/ui/ImageWithFallback';
@@ -76,6 +77,7 @@ const About = () => {
                 <ImageWithFallback
                   src={founder.image}
                   alt={founder.name}
+                  width={600}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 {/* Enhanced Gradient for better text readability */}
@@ -105,9 +107,7 @@ const About = () => {
                         <span className="border-b border-white/30 group-hover/link:border-white pb-0.5 transition-colors">
                           {founder.linkText}
                         </span>
-                        <svg className="w-4 h-4 ml-2 opacity-70 group-hover/link:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
+                        <ArrowRight className="w-4 h-4 ml-2 opacity-70 group-hover/link:translate-x-1 transition-transform" />
                       </a>
                     </div>
                   </div>
