@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BASE_URL = 'https://awaiten.com';
-const CDN_BASE = 'https://pub-fce304ab2fbe43ecb4b1a4c90fdb3bdc.r2.dev';
+const CDN_BASE = 'https://cdn.awaiten.com';
 const BASE_PATH = '';
 
 // Load projects data

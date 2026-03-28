@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProjectBySlug } from '../utils/projects';
-import { getAssetPath } from '../utils/assets';
+import { getAssetPath, getOriginalAssetPath } from '../utils/assets';
 import lightGallery from 'lightgallery';
 import lgZoom from 'lightgallery/plugins/zoom';
 import lgAutoplay from 'lightgallery/plugins/autoplay';
@@ -21,16 +21,14 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import Masonry from 'react-masonry-css';
 
-// All images served from Cloudflare R2 CDN (originals only, no optimized copies)
-const getImagePath = (imagePath) => getAssetPath(imagePath);
-
 // Gallery Image Item Component
 const GalleryImageItem = ({ image, index, projectTitle }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const imagePath = getImagePath(image); // Use optimized for display
-  
+  const displayPath = getAssetPath(image, { width: 800, quality: 75 }); // Resized for grid
+  const lightboxPath = getAssetPath(image, { width: 1920, quality: 85 }); // Higher res for lightbox
+
   const handleImageLoad = (e) => {
     setImageLoaded(true);
     setImageDimensions({
@@ -41,13 +39,13 @@ const GalleryImageItem = ({ image, index, projectTitle }) => {
 
   return (
     <div className="mb-8">
-      <div 
-        data-src={imagePath}
-        data-thumb={imagePath}
+      <div
+        data-src={lightboxPath}
+        data-thumb={displayPath}
         data-lg-size={`${imageDimensions.width || 0}-${imageDimensions.height || 0}`}
         className="gallery-item block overflow-hidden rounded-lg group cursor-zoom-in relative bg-gray-900"
         data-sub-html={`<h4>${projectTitle}</h4><p>Image ${index + 1}</p>`}
-        data-download-url={getImagePath(image)} // Original for downloads
+        data-download-url={getOriginalAssetPath(image)} // Full-res original for downloads
       >
         {/* Loading placeholder - maintains aspect ratio */}
         {!imageLoaded && !imageError && (
@@ -59,7 +57,7 @@ const GalleryImageItem = ({ image, index, projectTitle }) => {
         {/* Image */}
         <img 
           alt={`Gallery image ${index + 1}`} 
-          src={imagePath}
+          src={displayPath}
           className={`w-full h-auto transition-opacity duration-500 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
@@ -353,7 +351,7 @@ const GalleryPage = () => {
         await Promise.all(chunk.map(async (imageUrl) => {
           try {
             // Always use original full-res images for downloads
-            const originalPath = getImagePath(imageUrl);
+            const originalPath = getOriginalAssetPath(imageUrl);
             const response = await fetch(originalPath);
             const blob = await response.blob();
             const filename = imageUrl.split('/').pop();

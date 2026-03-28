@@ -396,7 +396,7 @@ const HeroSection = ({ onVideoClick }) => {
     <section className="relative min-h-[90vh] flex flex-col justify-center items-center bg-[#020617]">
       {/* Creative Background - Contained */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://pub-fce304ab2fbe43ecb4b1a4c90fdb3bdc.r2.dev/images/branding/PodcastBG.png')] bg-cover bg-center scale-105 blur-sm opacity-80" />
+        <div className="absolute inset-0 bg-[url('https://cdn.awaiten.com/cdn-cgi/image/width=1200,quality=75,format=auto/images/branding/PodcastBG.png')] bg-cover bg-center scale-105 blur-sm opacity-80" />
         {/* Subtle blue overlay gradient for styling */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617]/80 via-[#020617]/20 to-[#020617]" />
         {/* Smooth fade transition at bottom */}
