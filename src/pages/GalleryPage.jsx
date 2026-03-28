@@ -10,7 +10,7 @@ import 'lightgallery/css/lightgallery.css';
 import 'lightgallery/css/lg-zoom.css';
 import 'lightgallery/css/lg-autoplay.css';
 import 'lightgallery/css/lg-share.css';
-import { FaDownload, FaShare, FaPlay, FaArrowUp, FaArrowLeft } from 'react-icons/fa';
+import { Download, Share2, Play, ArrowUp, ArrowLeft } from 'lucide-react';
 import Container from '../components/ui/Container';
 import Button from '../components/ui/Button';
 import AnimatedHeading from '../components/ui/AnimatedHeading';
@@ -336,43 +336,38 @@ const GalleryPage = () => {
     try {
       const zip = new JSZip();
       const folder = zip.folder(project.title.replace(/\s+/g, '_'));
-      
+
       // Always download ALL images, not just filtered ones
       const imagesToDownload = allGalleryImages;
-      
-      // Limit parallel downloads to prevent browser hanging
-      const CHUNK_SIZE = 5;
       const totalImages = imagesToDownload.length;
       let downloadedCount = 0;
 
+      // Stream images into zip with high parallelism
+      const CHUNK_SIZE = 15;
       for (let i = 0; i < totalImages; i += CHUNK_SIZE) {
         const chunk = imagesToDownload.slice(i, i + CHUNK_SIZE);
-        
-        await Promise.all(chunk.map(async (imageUrl) => {
-          try {
-            // Always use original full-res images for downloads
-            const originalPath = getOriginalAssetPath(imageUrl);
-            const response = await fetch(originalPath);
-            const blob = await response.blob();
-            const filename = imageUrl.split('/').pop();
-            folder.file(filename, blob);
-            
-            downloadedCount++;
-            
-            // Update toast with progress every 5 images or when done
-            if (downloadedCount % 5 === 0 || downloadedCount === totalImages) {
-               updateToast(toastId, `Downloading images (${downloadedCount}/${totalImages})...`, 'loading', 0);
-            }
-          } catch (err) {
-            console.error(`Failed to download image: ${imageUrl}`, err);
-          }
+
+        const results = await Promise.allSettled(chunk.map(async (imageUrl) => {
+          const originalPath = getOriginalAssetPath(imageUrl);
+          const response = await fetch(originalPath);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.arrayBuffer();
+          const filename = imageUrl.split('/').pop();
+          folder.file(filename, blob, { compression: 'STORE' });
         }));
+
+        downloadedCount += results.filter(r => r.status === 'fulfilled').length;
+        updateToast(toastId, `Downloading (${downloadedCount}/${totalImages})...`, 'loading', 0);
       }
 
       updateToast(toastId, 'Zipping files...', 'loading', 0);
-      const content = await zip.generateAsync({ type: 'blob' });
+      const content = await zip.generateAsync({
+        type: 'blob',
+        compression: 'STORE',
+        streamFiles: true,
+      });
       saveAs(content, `${project.title.replace(/\s+/g, '_')}.zip`);
-      
+
       updateToast(toastId, 'Download started!', 'success', 4000);
     } catch (error) {
       console.error('Download failed:', error);
@@ -414,7 +409,7 @@ const GalleryPage = () => {
           <div className="flex justify-between items-center mb-2">
             <Link to="/photography" className="flex items-center gap-2 text-sm font-medium tracking-widest uppercase text-gray-400 hover:text-white transition-colors group">
               <div className="p-2 rounded-full transition-colors">
-                <FaArrowLeft className="text-xs text-gray-300" />
+                <ArrowLeft size={14} className="text-gray-300" />
               </div>
               <span className="text-white/80 group-hover:text-white">Home</span>
             </Link>
@@ -437,15 +432,15 @@ const GalleryPage = () => {
                    {isDownloading ? (
                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                    ) : (
-                     <FaDownload className="text-sm" />
+                     <Download size={16} />
                    )}
                  </button>
                )}
                <button onClick={handleShare} className="p-2 text-white/70 hover:text-white transition-colors" aria-label="Share" title="Share">
-                 <FaShare className="text-sm" />
+                 <Share2 size={16} />
                </button>
                <button onClick={startSlideshow} className="p-2 text-white/70 hover:text-white transition-colors" aria-label="Slideshow" title="Slideshow">
-                 <FaPlay className="text-xs" />
+                 <Play size={14} />
                </button>
             </div>
           </div>
@@ -548,15 +543,15 @@ const GalleryPage = () => {
                         {isDownloading ? (
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                          <FaDownload />
+                          <Download size={18} />
                         )}
                       </button>
                     )}
                     <button onClick={handleShare} className="p-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white text-white transition-all" aria-label="Share">
-                      <FaShare />
+                      <Share2 size={18} />
                     </button>
                     <button onClick={startSlideshow} className="p-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white text-white transition-all" aria-label="Slideshow">
-                      <FaPlay />
+                      <Play size={18} />
                     </button>
                   </div>
                 </div>
@@ -676,7 +671,7 @@ const GalleryPage = () => {
           
           <div className="flex justify-center space-x-6 mb-12">
              <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center text-gray-500 hover:text-white transition-colors">
-               <FaArrowUp className="mb-2" />
+               <ArrowUp size={16} className="mb-2" />
                <span className="text-[10px] uppercase tracking-widest">Back to Top</span>
              </button>
           </div>
