@@ -7,7 +7,6 @@ const __dirname = path.dirname(__filename);
 
 const BASE_URL = 'https://awaiten.com';
 const CDN_BASE = 'https://cdn.awaiten.com';
-const BASE_PATH = '';
 
 // Load projects data
 const projectsData = JSON.parse(
@@ -23,7 +22,6 @@ function getAbsoluteImageUrl(imagePath) {
   if (!imagePath) return `${CDN_BASE}/images/branding/embed.png`;
   if (imagePath.startsWith('http')) return imagePath;
   const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-  // Route image paths to CDN, rewrite gallery-optimized to originals
   if (cleanPath.startsWith('/images/')) {
     const cdnPath = cleanPath.startsWith('/images/gallery-optimized/')
       ? cleanPath.replace('/images/gallery-optimized/', '/images/gallery/')
@@ -36,142 +34,139 @@ function getAbsoluteImageUrl(imagePath) {
 // Helper to strip HTML tags for description
 function stripHtml(html) {
   if (!html) return '';
-  return html.replace(/<[^>]*>/g, '').trim();
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
-// Generate HTML for a project route
-function generateProjectHtml(project, routePath) {
-  const thumbnail = project.thumbnail || project.gallery?.[0];
-  const imageUrl = getAbsoluteImageUrl(thumbnail);
-  const title = `${project.title} • Awaiten`;
-  const description = project.about 
-    ? stripHtml(project.about).substring(0, 200)
-    : `View ${project.title} by Awaiten`;
-  const url = `${BASE_URL}${routePath}`;
+// Escape HTML entities for safe injection
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
-  // Replace meta tags in the HTML
+// Update a meta tag in the HTML string
+function setMeta(html, selector, attr, value) {
+  const regex = new RegExp(`(<meta[^>]*${selector}[^>]*${attr}=")[^"]*(")`);
+  if (regex.test(html)) {
+    return html.replace(regex, `$1${escapeHtml(value)}$2`);
+  }
+  // Insert before </head> if not found
+  const propType = selector.includes('property=') ? 'property' : 'name';
+  const propVal = selector.match(/"([^"]+)"/)?.[1] || '';
+  return html.replace(
+    /<\/head>/,
+    `    <meta ${propType}="${propVal}" ${attr}="${escapeHtml(value)}" />\n  </head>`
+  );
+}
+
+// Generate SEO-enriched HTML for a page
+function generatePageHtml({ title, description, imageUrl, url, content, jsonLd }) {
   let html = baseHtml;
 
-  // Update title
+  // Title
+  html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(title)}</title>`);
+
+  // Meta description (the actual SEO-critical one)
   html = html.replace(
-    /<title>.*?<\/title>/,
-    `<title>${title}</title>`
+    /<meta name="description" content="[^"]*" \/>/,
+    `<meta name="description" content="${escapeHtml(description)}" />`
   );
 
-  // Update or add og:image
-  if (html.includes('property="og:image"')) {
-    html = html.replace(
-      /<meta property="og:image" content="[^"]*" \/>/,
-      `<meta property="og:image" content="${imageUrl}" />`
-    );
-  } else {
+  // Canonical
+  html = html.replace(
+    /<\/head>/,
+    `    <link rel="canonical" href="${escapeHtml(url)}" />\n  </head>`
+  );
+
+  // Open Graph
+  html = setMeta(html, 'property="og:type"', 'content', 'article');
+  html = setMeta(html, 'property="og:url"', 'content', url);
+  html = setMeta(html, 'property="og:title"', 'content', title);
+  html = setMeta(html, 'property="og:description"', 'content', description);
+  html = setMeta(html, 'property="og:image"', 'content', imageUrl);
+
+  // Twitter
+  html = setMeta(html, 'property="twitter:url"', 'content', url);
+  html = setMeta(html, 'property="twitter:title"', 'content', title);
+  html = setMeta(html, 'property="twitter:description"', 'content', description);
+  html = setMeta(html, 'property="twitter:image"', 'content', imageUrl);
+
+  // Inject JSON-LD structured data before </head>
+  if (jsonLd) {
     html = html.replace(
       /<\/head>/,
-      `    <meta property="og:image" content="${imageUrl}" />\n</head>`
+      `    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n  </head>`
     );
   }
 
-  // Update or add og:title
-  if (html.includes('property="og:title"')) {
+  // Inject server-rendered content into the body for crawlers
+  // This goes inside <div id="root"> so React will hydrate over it
+  if (content) {
     html = html.replace(
-      /<meta property="og:title" content="[^"]*" \/>/,
-      `<meta property="og:title" content="${title}" />`
-    );
-  } else {
-    html = html.replace(
-      /<\/head>/,
-      `    <meta property="og:title" content="${title}" />\n</head>`
-    );
-  }
-
-  // Update or add og:description
-  if (html.includes('property="og:description"')) {
-    html = html.replace(
-      /<meta property="og:description" content="[^"]*" \/>/,
-      `<meta property="og:description" content="${description}" />`
-    );
-  } else {
-    html = html.replace(
-      /<\/head>/,
-      `    <meta property="og:description" content="${description}" />\n</head>`
-    );
-  }
-
-  // Update or add og:url
-  if (html.includes('property="og:url"')) {
-    html = html.replace(
-      /<meta property="og:url" content="[^"]*" \/>/,
-      `<meta property="og:url" content="${url}" />`
-    );
-  } else {
-    html = html.replace(
-      /<\/head>/,
-      `    <meta property="og:url" content="${url}" />\n</head>`
-    );
-  }
-
-  // Update or add twitter:image
-  if (html.includes('property="twitter:image"')) {
-    html = html.replace(
-      /<meta property="twitter:image" content="[^"]*" \/>/,
-      `<meta property="twitter:image" content="${imageUrl}" />`
-    );
-  } else {
-    html = html.replace(
-      /<\/head>/,
-      `    <meta property="twitter:image" content="${imageUrl}" />\n</head>`
-    );
-  }
-
-  // Update or add twitter:title
-  if (html.includes('property="twitter:title"')) {
-    html = html.replace(
-      /<meta property="twitter:title" content="[^"]*" \/>/,
-      `<meta property="twitter:title" content="${title}" />`
-    );
-  } else {
-    html = html.replace(
-      /<\/head>/,
-      `    <meta property="twitter:title" content="${title}" />\n</head>`
-    );
-  }
-
-  // Update or add twitter:description
-  if (html.includes('property="twitter:description"')) {
-    html = html.replace(
-      /<meta property="twitter:description" content="[^"]*" \/>/,
-      `<meta property="twitter:description" content="${description}" />`
-    );
-  } else {
-    html = html.replace(
-      /<\/head>/,
-      `    <meta property="twitter:description" content="${description}" />\n</head>`
-    );
-  }
-
-  // Update twitter:url
-  if (html.includes('property="twitter:url"')) {
-    html = html.replace(
-      /<meta property="twitter:url" content="[^"]*" \/>/,
-      `<meta property="twitter:url" content="${url}" />`
+      '<div id="root"></div>',
+      `<div id="root"><div id="ssr-content" style="opacity:0;position:absolute;pointer-events:none">${content}</div></div>`
     );
   }
 
   return html;
 }
 
-// Generate static HTML files for all project routes
+// Build crawler-visible content for a project
+function buildProjectContent(project) {
+  const parts = [];
+  parts.push(`<h1>${escapeHtml(project.title)}</h1>`);
+  if (project.duration) parts.push(`<p>${escapeHtml(project.duration)}</p>`);
+  if (project.client) parts.push(`<p>Client: ${escapeHtml(project.client)}</p>`);
+  if (project.deliverables) parts.push(`<p>Deliverables: ${escapeHtml(project.deliverables)}</p>`);
+  if (project.about) {
+    const aboutText = stripHtml(project.about);
+    if (aboutText) parts.push(`<p>${escapeHtml(aboutText)}</p>`);
+  }
+  if (project.content) {
+    const contentText = stripHtml(project.content);
+    if (contentText) parts.push(`<p>${escapeHtml(contentText.substring(0, 500))}</p>`);
+  }
+  if (project.otherInfo1) {
+    const text = stripHtml(project.otherInfo1);
+    if (text) parts.push(`<p>${escapeHtml(text.substring(0, 300))}</p>`);
+  }
+  if (project.otherInfo2) {
+    const text = stripHtml(project.otherInfo2);
+    if (text) parts.push(`<p>${escapeHtml(text.substring(0, 300))}</p>`);
+  }
+  return parts.join('\n');
+}
+
+// Build JSON-LD for a project
+function buildProjectJsonLd(project, url, imageUrl) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    name: project.title,
+    description: project.about ? stripHtml(project.about).substring(0, 200) : `${project.title} by Awaiten`,
+    url,
+    image: imageUrl,
+    creator: { '@type': 'Organization', name: 'Awaiten', url: BASE_URL },
+    ...(project.duration && { dateCreated: project.duration }),
+    ...(project.client && { accountablePerson: { '@type': 'Organization', name: project.client } }),
+  };
+}
+
+// Category page descriptions
+const categoryDescriptions = {
+  documentary: 'Documentaries sharing raw & authentic stories of success, failure, and everything in between.',
+  photography: 'Professional photography capturing moments and stories through the lens — travel, landscape, wedding, and portrait photography.',
+  production: 'Creative production services bringing stories to life through video, film, and multimedia content.',
+  commercial: 'Commercial production services for brands and businesses looking to tell their story.',
+};
+
 function generateStaticPages() {
   try {
     const distDir = path.join(__dirname, '../dist');
-    
-    // Ensure dist directory exists
+
     if (!fs.existsSync(distDir)) {
       console.error('Error: dist directory does not exist. Run "npm run build" first.');
       process.exit(1);
     }
-
-    // Ensure index.html exists
     if (!fs.existsSync(indexHtmlPath)) {
       console.error(`Error: ${indexHtmlPath} does not exist.`);
       process.exit(1);
@@ -179,49 +174,117 @@ function generateStaticPages() {
 
     let generatedCount = 0;
     const errors = [];
+    const sitemapUrls = [
+      { loc: BASE_URL, priority: '1.0' },
+      { loc: `${BASE_URL}/manifesto`, priority: '0.8' },
+      { loc: `${BASE_URL}/podcast`, priority: '0.8' },
+    ];
 
+    // Generate category pages
+    for (const [category, desc] of Object.entries(categoryDescriptions)) {
+      const routePath = `/${category}`;
+      const url = `${BASE_URL}${routePath}`;
+      const title = `${category.charAt(0).toUpperCase() + category.slice(1)} • Awaiten`;
+      const projects = projectsData.projects.filter(p => p.category.toLowerCase() === category);
+      const projectList = projects.map(p => `<li><a href="/${category}/${p.slug}">${escapeHtml(p.title)}</a></li>`).join('\n');
+      const content = `<h1>${escapeHtml(title)}</h1>\n<p>${escapeHtml(desc)}</p>\n<ul>${projectList}</ul>`;
+
+      const html = generatePageHtml({
+        title,
+        description: desc,
+        imageUrl: `${CDN_BASE}/images/branding/embed.png`,
+        url,
+        content,
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: title,
+          description: desc,
+          url,
+          mainEntity: { '@type': 'ItemList', itemListElement: projects.map((p, i) => ({
+            '@type': 'ListItem', position: i + 1, url: `${BASE_URL}/${category}/${p.slug}`, name: p.title,
+          }))},
+        },
+      });
+
+      const filePath = path.join(distDir, category, 'index.html');
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, html, 'utf8');
+      generatedCount++;
+      console.log(`Generated: ${routePath}`);
+      sitemapUrls.push({ loc: url, priority: '0.8' });
+    }
+
+    // Generate project pages
     projectsData.projects.forEach((project, index) => {
       try {
         const category = project.category.toLowerCase();
         const slug = project.slug;
-        
         if (!category || !slug) {
           errors.push(`Project at index ${index} missing category or slug`);
           return;
         }
-        
-        // Generate HTML for project detail pages
+
         const routePath = `/${category}/${slug}`;
+        const url = `${BASE_URL}${routePath}`;
+        const thumbnail = project.thumbnail || project.gallery?.[0];
+        const imageUrl = getAbsoluteImageUrl(thumbnail);
+        const title = `${project.title} • Awaiten`;
+        const description = project.about
+          ? stripHtml(project.about).substring(0, 160)
+          : `View ${project.title} by Awaiten`;
+
+        const html = generatePageHtml({
+          title,
+          description,
+          imageUrl,
+          url,
+          content: buildProjectContent(project),
+          jsonLd: buildProjectJsonLd(project, url, imageUrl),
+        });
+
         const filePath = path.join(distDir, category, slug, 'index.html');
-        const dirPath = path.dirname(filePath);
-        
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, { recursive: true });
-        }
-        
-        const html = generateProjectHtml(project, routePath);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
         fs.writeFileSync(filePath, html, 'utf8');
         generatedCount++;
-        
         console.log(`Generated: ${routePath}`);
+        sitemapUrls.push({ loc: url, priority: '0.6' });
       } catch (error) {
         errors.push(`Error generating page for project "${project?.title || index}": ${error.message}`);
       }
     });
 
+    // Generate sitemap.xml
+    const today = new Date().toISOString().split('T')[0];
+    const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapUrls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+    fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf8');
+    console.log(`Generated: /sitemap.xml (${sitemapUrls.length} URLs)`);
+
+    // Generate robots.txt
+    const robotsTxt = `User-agent: *
+Allow: /
+Sitemap: ${BASE_URL}/sitemap.xml
+`;
+    fs.writeFileSync(path.join(distDir, 'robots.txt'), robotsTxt, 'utf8');
+    console.log('Generated: /robots.txt');
+
     if (errors.length > 0) {
-      console.error('\n⚠️  Errors encountered:');
+      console.error('\n\u26a0\ufe0f  Errors encountered:');
       errors.forEach(err => console.error(`  - ${err}`));
     }
 
-    console.log(`\n✅ Generated ${generatedCount} static HTML files with meta tags.`);
-    
-    if (errors.length > 0) {
-      process.exit(1);
-    }
+    console.log(`\n\u2705 Generated ${generatedCount} static HTML files + sitemap.xml + robots.txt`);
+
+    if (errors.length > 0) process.exit(1);
   } catch (error) {
-    console.error(`\n❌ Fatal error in generateStaticPages: ${error.message}`);
+    console.error(`\n\u274c Fatal error: ${error.message}`);
     console.error(error.stack);
     process.exit(1);
   }
@@ -230,8 +293,7 @@ function generateStaticPages() {
 try {
   generateStaticPages();
 } catch (error) {
-  console.error(`\n❌ Fatal error: ${error.message}`);
+  console.error(`\n\u274c Fatal error: ${error.message}`);
   console.error(error.stack);
   process.exit(1);
 }
-
