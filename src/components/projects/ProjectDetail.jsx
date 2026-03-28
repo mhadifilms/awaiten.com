@@ -5,21 +5,8 @@ import MotionBox from '../ui/MotionBox';
 import Container from '../ui/Container';
 import { getAssetPath } from '../../utils/assets';
 
-// Helper function to get optimized image path for display (fast loading)
-const getOptimizedImagePath = (imagePath) => {
-  // Use optimized version if it exists, otherwise fallback to original
-  if (imagePath.startsWith('/images/gallery/')) {
-    const optimizedPath = imagePath.replace('/images/gallery/', '/images/gallery-optimized/');
-    return getAssetPath(optimizedPath);
-  }
-  return getAssetPath(imagePath);
-};
-
-// Helper function to get original full-res image path for downloads
-const getOriginalImagePath = (imagePath) => {
-  // Always use original for downloads
-  return getAssetPath(imagePath);
-};
+// All images served from Cloudflare R2 CDN (originals only)
+const getImagePath = (imagePath) => getAssetPath(imagePath);
 import 'lightgallery/css/lightgallery.css';
 import 'lightgallery/css/lg-zoom.css';
 import lightGallery from 'lightgallery';
@@ -625,9 +612,9 @@ const ProjectDetail = ({ project }) => {
                     delay={index * 0.1}
                     duration={0.4}
                     className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-800 cursor-zoom-in gallery-item block"
-                    data-src={getOptimizedImagePath(image)} // Use optimized for display (fast)
-                    data-thumb={getOptimizedImagePath(image)} // Use optimized for thumbnails
-                    data-download-url={getOriginalImagePath(image)} // Use original for downloads
+                    data-src={getImagePath(image)} // Use optimized for display (fast)
+                    data-thumb={getImagePath(image)} // Use optimized for thumbnails
+                    data-download-url={getImagePath(image)} // Use original for downloads
                   >
                     <ImageWithFallback
                       src={image}

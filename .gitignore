@@ -16,6 +16,7 @@ docs/
 # Images hosted on Cloudflare R2 CDN
 public/images/
 scripts/upload_to_r2.sh
+.git.old/
 
 # Editor directories and files
 .vscode/*

@@ -21,29 +21,15 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import Masonry from 'react-masonry-css';
 
-// Helper function to get optimized image path for display (fast loading)
-const getOptimizedImagePath = (imagePath) => {
-  // Use optimized version if it exists, otherwise fallback to original
-  // e.g., /images/gallery/sync-uncanny/DSC03918.jpg -> /images/gallery-optimized/sync-uncanny/DSC03918.jpg
-  if (imagePath.startsWith('/images/gallery/')) {
-    const optimizedPath = imagePath.replace('/images/gallery/', '/images/gallery-optimized/');
-    return getAssetPath(optimizedPath);
-  }
-  return getAssetPath(imagePath);
-};
-
-// Helper function to get original full-res image path for downloads
-const getOriginalImagePath = (imagePath) => {
-  // Always use original for downloads
-  return getAssetPath(imagePath);
-};
+// All images served from Cloudflare R2 CDN (originals only, no optimized copies)
+const getImagePath = (imagePath) => getAssetPath(imagePath);
 
 // Gallery Image Item Component
 const GalleryImageItem = ({ image, index, projectTitle }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const imagePath = getOptimizedImagePath(image); // Use optimized for display
+  const imagePath = getImagePath(image); // Use optimized for display
   
   const handleImageLoad = (e) => {
     setImageLoaded(true);
@@ -61,7 +47,7 @@ const GalleryImageItem = ({ image, index, projectTitle }) => {
         data-lg-size={`${imageDimensions.width || 0}-${imageDimensions.height || 0}`}
         className="gallery-item block overflow-hidden rounded-lg group cursor-zoom-in relative bg-gray-900"
         data-sub-html={`<h4>${projectTitle}</h4><p>Image ${index + 1}</p>`}
-        data-download-url={getOriginalImagePath(image)} // Original for downloads
+        data-download-url={getImagePath(image)} // Original for downloads
       >
         {/* Loading placeholder - maintains aspect ratio */}
         {!imageLoaded && !imageError && (
@@ -367,7 +353,7 @@ const GalleryPage = () => {
         await Promise.all(chunk.map(async (imageUrl) => {
           try {
             // Always use original full-res images for downloads
-            const originalPath = getOriginalImagePath(imageUrl);
+            const originalPath = getImagePath(imageUrl);
             const response = await fetch(originalPath);
             const blob = await response.blob();
             const filename = imageUrl.split('/').pop();
