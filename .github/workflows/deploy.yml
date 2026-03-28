@@ -1,0 +1,112 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Free disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          echo "Disk space after cleanup:"
+          df -h
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: |
+          set -e
+          echo "=== Starting build process ==="
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Working directory: $(pwd)"
+          echo ""
+          echo "Running: npm run build"
+          npm run build || (echo "BUILD FAILED" && exit 1)
+          echo ""
+          echo "=== Build completed successfully ==="
+          echo ""
+          echo "=== Verifying dist directory contents ==="
+          ls -la dist/ | head -30
+          echo ""
+          echo "=== Checking for required files ==="
+          if [ ! -f dist/index.html ]; then 
+            echo "ERROR: dist/index.html missing"
+            exit 1
+          fi
+          echo "✓ dist/index.html exists"
+          
+          if [ ! -f dist/404.html ]; then 
+            echo "ERROR: dist/404.html missing"
+            exit 1
+          fi
+          echo "✓ dist/404.html exists"
+          
+          if [ ! -f dist/CNAME ]; then 
+            echo "ERROR: dist/CNAME missing"
+            exit 1
+          fi
+          echo "✓ dist/CNAME exists"
+          
+          if [ ! -d dist/assets ]; then 
+            echo "ERROR: dist/assets directory missing"
+            exit 1
+          fi
+          echo "✓ dist/assets directory exists"
+          echo ""
+          echo "=== Checking assets directory ==="
+          ls -la dist/assets/ | head -10
+          echo ""
+          echo "✅ All verifications passed!"
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+          retention-days: 1
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 5
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
