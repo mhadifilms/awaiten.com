@@ -180,6 +180,57 @@ function generateStaticPages() {
       { loc: `${BASE_URL}/podcast`, priority: '0.8' },
     ];
 
+    // Generate standalone pages
+    const standalonePages = [
+      {
+        route: '/podcast',
+        title: 'Journey Tellers Podcast • Awaiten',
+        description: 'Reading and writing the stories of the Muslim West. Celebrating entrepreneurs, chefs, doctors, animators, converts, and educators.',
+        content: '<h1>Journey Tellers Podcast</h1><p>Reading and writing the stories of the Muslim West. A podcast by Awaiten celebrating entrepreneurs, chefs, doctors, animators, converts, and educators.</p>',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'PodcastSeries',
+          name: 'Journey Tellers',
+          description: 'Reading and writing the stories of the Muslim West.',
+          url: `${BASE_URL}/podcast`,
+          creator: { '@type': 'Organization', name: 'Awaiten', url: BASE_URL },
+        },
+      },
+      {
+        route: '/manifesto',
+        title: 'The Next Hollywood is Unscripted: Our Manifesto • Awaiten',
+        description: 'In a world where every skill can be mastered by anyone, those who stand out will be the best storytellers. Not stories that have been scripted, rather authentic stories.',
+        content: '<h1>The next Hollywood is unscripted.</h1><p>In a world where every skill can be mastered by anyone, and the value of all skills goes to zero, those who stand out will be the best storytellers. Not stories that have been scripted, rather authentic stories—ones that are lived, captured, and shared with the world.</p><p>Our goal with Awaiten is to provide the resources needed, from beginning to end, for anyone — no matter their skill, age, or experience — to share their stories with the world.</p>',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          name: 'The Next Hollywood is Unscripted',
+          description: 'Our manifesto on authentic storytelling.',
+          url: `${BASE_URL}/manifesto`,
+          author: { '@type': 'Person', name: 'M Hadi', jobTitle: 'CEO & Co-Founder' },
+          publisher: { '@type': 'Organization', name: 'Awaiten', url: BASE_URL },
+        },
+      },
+    ];
+
+    for (const page of standalonePages) {
+      const url = `${BASE_URL}${page.route}`;
+      const html = generatePageHtml({
+        title: page.title,
+        description: page.description,
+        imageUrl: `${CDN_BASE}/images/branding/embed.png`,
+        url,
+        content: page.content,
+        jsonLd: page.jsonLd,
+      });
+
+      const filePath = path.join(distDir, page.route, 'index.html');
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, html, 'utf8');
+      generatedCount++;
+      console.log(`Generated: ${page.route}`);
+    }
+
     // Generate category pages
     for (const [category, desc] of Object.entries(categoryDescriptions)) {
       const routePath = `/${category}`;
