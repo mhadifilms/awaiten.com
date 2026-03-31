@@ -13,35 +13,7 @@ import NotFound from './pages/NotFound';
 import ScrollToTop from './components/ScrollToTop';
 import { ToastProvider } from './context/ToastContext';
 
-// Check for subdomain redirect before React Router initializes
-function checkSubdomainRedirect() {
-  const hostname = window.location.hostname.toLowerCase();
-  
-  // Redirect gallery subdomain to main domain photography section
-  if (hostname === 'gallery.awaiten.com' || hostname === 'www.gallery.awaiten.com') {
-    let currentPath = window.location.pathname;
-    currentPath = currentPath.replace(/^\/+/, '').replace(/\/+$/, '');
-    
-    if (!currentPath || currentPath === '') {
-      window.location.replace('https://awaiten.com/photography');
-      return true;
-    }
-    
-    const redirectUrl = `https://awaiten.com/photography/${currentPath}`;
-    window.location.replace(redirectUrl);
-    return true;
-  }
-  
-  return false; // No redirect needed
-}
-
 function App() {
-  // Check for redirect before rendering Router
-  if (checkSubdomainRedirect()) {
-    // Return null while redirecting
-    return null;
-  }
-
   return (
     <ReactLenis root>
       <ToastProvider>
