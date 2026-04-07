@@ -305,6 +305,43 @@ function generateStaticPages() {
       }
     });
 
+    // Generate 301 redirect pages for old URLs
+    // Maps old Framer/gallery URLs to current routes
+    const redirects = [
+      // Old /projects/* URLs from Framer
+      ...projectsData.projects.map(p => ({
+        from: `/projects/${p.slug}`,
+        to: `/${p.category.toLowerCase()}/${p.slug}`,
+      })),
+      // Old /gallery route
+      { from: '/gallery', to: '/photography' },
+    ];
+
+    let redirectCount = 0;
+    for (const { from, to } of redirects) {
+      const targetUrl = `${BASE_URL}${to}`;
+      const redirectHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0;url=${targetUrl}">
+<link rel="canonical" href="${targetUrl}">
+<title>Redirecting...</title>
+</head>
+<body>
+<p>This page has moved to <a href="${targetUrl}">${targetUrl}</a></p>
+</body>
+</html>`;
+
+      const filePath = path.join(distDir, from, 'index.html');
+      // Don't overwrite existing pages
+      if (fs.existsSync(filePath)) continue;
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, redirectHtml, 'utf8');
+      redirectCount++;
+    }
+    console.log(`Generated: ${redirectCount} redirect pages for old URLs`);
+
     // Generate sitemap.xml
     const today = new Date().toISOString().split('T')[0];
     const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
