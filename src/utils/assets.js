@@ -18,9 +18,10 @@ export const getAssetPath = (path, { width = 1200, quality = 75 } = {}) => {
   // Ensure path has leading slash
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
-  // Route image assets through CDN with transforms
+  // Route image assets through Cloudflare Image Transforms.
   if (normalizedPath.startsWith('/images/')) {
-    // Normalize gallery-optimized paths to originals (we only have originals on R2)
+    // Legacy gallery-optimized paths are no longer generated locally; Cloudflare
+    // handles resizing/format conversion from the original gallery assets.
     const cdnPath = normalizedPath.startsWith('/images/gallery-optimized/')
       ? normalizedPath.replace('/images/gallery-optimized/', '/images/gallery/')
       : normalizedPath;
@@ -41,6 +42,7 @@ export const getOriginalAssetPath = (path) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
   if (normalizedPath.startsWith('/images/')) {
+    // Preserve old data paths while downloading the canonical original.
     const cdnPath = normalizedPath.startsWith('/images/gallery-optimized/')
       ? normalizedPath.replace('/images/gallery-optimized/', '/images/gallery/')
       : normalizedPath;

@@ -6,6 +6,9 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: '/', // Custom domain - no base path needed
+  // Images are served from Cloudflare R2 via src/utils/assets.js. Keeping Vite's
+  // public copy step enabled duplicates the local image archive into dist/.
+  publicDir: false,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

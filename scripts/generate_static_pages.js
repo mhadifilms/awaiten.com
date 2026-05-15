@@ -23,6 +23,7 @@ function getAbsoluteImageUrl(imagePath) {
   if (imagePath.startsWith('http')) return imagePath;
   const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
   if (cleanPath.startsWith('/images/')) {
+    // Legacy gallery-optimized paths are served from Cloudflare's originals.
     const cdnPath = cleanPath.startsWith('/images/gallery-optimized/')
       ? cleanPath.replace('/images/gallery-optimized/', '/images/gallery/')
       : cleanPath;
